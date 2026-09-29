@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOIDBOUND: DERELICT - Sci-Fi Top-Down Roguelike</title>
+  <meta name="description" content="Roguelike de ação top-down em ficção científica com geração procedural, combate de facções, hackeamento, mutações alienígenas e customização modular de robôs.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="gameWrapper">
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD Overlay -->
+    <div id="hudOverlay" class="hidden">
+      <!-- Top Bar -->
+      <div class="hud-top">
+        <div class="hud-left">
+          <!-- HP & Shield -->
+          <div class="status-badge">
+            <span id="hpDisplay">❤️❤️❤️❤️❤️❤️</span>
+            <span id="shieldDisplay">🛡️🛡️</span>
+          </div>
+
+          <!-- Oxygen Bar -->
+          <div class="status-badge o2-widget" id="o2Widget">
+            <span>🫧 O2</span>
+            <div class="meter-bar">
+              <div id="o2BarFill" class="meter-fill o2" style="width: 100%;"></div>
+            </div>
+            <span id="o2Value">100%</span>
+          </div>
+
+          <!-- Hacking Tool EMP -->
+          <div class="status-badge" id="hackWidget">
+            <span>⚡ HACK [E]</span>
+            <div class="meter-bar">
+              <div id="hackBarFill" class="meter-fill hack" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div id="sectorBanner">SETOR 01: BIOMASSA ALIENÍGENA</div>
+        </div>
+
+        <div class="hud-right">
+          <div class="hud-buttons">
+            <button class="hud-btn" id="btnOpenLoadout">⚙️ LOADOUT [TAB]</button>
+            <button class="hud-btn" id="btnToggleAudio">🔊 BGM: ON</button>
+            <button class="hud-btn" id="btnToggleSfx">💥 SFX: ON</button>
+          </div>
+
+          <!-- Minimap -->
+          <div id="minimapContainer">
+            <canvas id="minimapCanvas" width="130" height="130"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="hud-bottom">
+        <div class="weapon-slot">
+          <span style="color: var(--accent-amber);">🔩 SUCATA: <strong id="scrapValue">20</strong></span>
+        </div>
+        <div class="weapon-slot">
+          <span>ARMA ATIVA: <strong id="activeWeaponName" style="color: var(--accent-cyan);">🔫 Blaster de Plasma</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Start / Title Screen Modal -->
+    <div id="startScreen" class="game-modal">
+      <div class="modal-content">
+        <h1>VOIDBOUND: DERELICT</h1>
+        <div class="modal-subtitle">ROGUELIKE DE AÇÃO TOP-DOWN ESPACIAL</div>
+
+        <div class="lore-box">
+          Você desperta a bordo de uma nave-mãe de pesquisa à deriva no espaço profundo. A estação foi tomada por uma infestação biológica e por defesas cibernéticas autônomas em guerra aberta pelo controle do complexo.
+          <ul>
+            <li><strong>Conflito de Facções:</strong> Aliens e robôs atacam-se mutuamente! Aproveite o caos para flanquear ou escapar.</li>
+            <li><strong>Hackeamento [E / Botão Direito]:</strong> Hackeie robôs de combate para transformá-los em aliados temporários.</li>
+            <li><strong>Módulos Robóticos:</strong> Colete e encaixe peças para criar builds customizadas de armas, chassis e motores.</li>
+            <li><strong>Mutações Alienígenas:</strong> Absorva mutagênicos com poderes extremos acompanhados de sequelas imprevisíveis.</li>
+            <li><strong>Risco de Oxigênio:</strong> No setor de vácuo, monitore seu cilindro de O2 para não asfixiar.</li>
+          </ul>
+        </div>
+
+        <div class="controls-grid">
+          <div class="control-item"><strong>WASD ou Setas:</strong> Movimento</div>
+          <div class="control-item"><strong>Mouse + Botão Esquerdo:</strong> Mirar e Atirar</div>
+          <div class="control-item"><strong>Shift / Espaço:</strong> Dash / Esquiva com I-frames</div>
+          <div class="control-item"><strong>E ou Botão Direito:</strong> Feixe de Hack EMP</div>
+          <div class="control-item"><strong>TAB ou I:</strong> Gerenciador de Loadout</div>
+          <div class="control-item"><strong>ESC ou P:</strong> Pausar o Jogo</div>
+        </div>
+
+        <button class="btn-primary" id="btnStartGame">INICIAR EXPEDIÇÃO</button>
+      </div>
+    </div>
+
+    <!-- Loadout / Inventory Modal -->
+    <div id="loadoutModal" class="game-modal hidden">
+      <div class="modal-content loadout-container">
+        <h1>SISTEMA DE LOADOUT MODULAR</h1>
+        <div class="modal-subtitle">Equipe módulos robóticos e inspecione mutações orgânicas ativas</div>
+
+        <div class="slots-grid" id="equippedSlots"></div>
+
+        <h3 style="font-size: 13px; color: var(--accent-cyan); margin: 12px 0 6px 0; font-family: var(--font-mono);">MÓDULOS DE ARMAZENAMENTO</h3>
+        <div id="inventoryModules" style="max-height: 120px; overflow-y: auto;"></div>
+
+        <h3 style="font-size: 13px; color: var(--accent-green); margin: 14px 0 6px 0; font-family: var(--font-mono);">MUTAÇÕES ALIENÍGENAS ATIVAS</h3>
+        <div id="activeMutationsList" style="max-height: 120px; overflow-y: auto;"></div>
+
+        <div style="text-align: center; margin-top: 15px;">
+          <button class="btn-primary" id="btnCloseLoadout">RETORNAR AO COMBATE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alien Mutagen Prompt Modal -->
+    <div id="mutagenModal" class="game-modal hidden">
+      <div class="modal-content">
+        <h1 style="color: var(--accent-green);">🧬 CÂMARA DE INFUSÃO MUTAGÊNICA</h1>
+        <div class="modal-subtitle">Uma colônia alienígena viva oferece aprimoramento simbiótico... a um custo biológico.</div>
+
+        <div class="mutagen-card">
+          <h2 id="mutagenTitle" style="color: #fff; font-size: 18px; margin-bottom: 8px;">MUTAÇÃO</h2>
+          <div class="mutagen-boon"><strong>Vantagem (Boon):</strong> <span id="mutagenBoon"></span></div>
+          <div class="mutagen-drawback"><strong>Efeito Colateral (Drawback):</strong> <span id="mutagenDrawback"></span></div>
+        </div>
+
+        <div>
+          <button class="btn-primary" id="btnAcceptMutation" style="background: var(--accent-green); color: #000;">ACEITAR MUTAÇÃO</button>
+          <button class="btn-secondary" id="btnRejectMutation">PURGAR E IGNORAR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pauseModal" class="game-modal hidden">
+      <div class="modal-content">
+        <h1>SISTEMAS PAUSADOS</h1>
+        <div class="modal-subtitle">Partida em espera</div>
+        <button class="btn-primary" id="btnResume">CONTINUAR</button>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverModal" class="game-modal hidden">
+      <div class="modal-content">
+        <h1 style="color: var(--accent-danger);">SINAIS VITAIS PERDIDOS</h1>
+        <div class="modal-subtitle">Seu exoesqueleto sucumbiu aos perigos da estação à deriva.</div>
+        <div id="gameOverStats" class="lore-box"></div>
+        <button class="btn-primary" id="btnRestart">REINICIAR SISTEMAS (NOVA RUN)</button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victoryModal" class="game-modal hidden">
+      <div class="modal-content">
+        <h1 style="color: var(--accent-cyan);">MISSÃO CONCLUÍDA: FUGA BEM-SUCEDIDA</h1>
+        <div class="modal-subtitle">Você neutralizou o Reator de Matéria Escura e escapou nos módulos de evacuação.</div>
+        <div id="victoryStats" class="lore-box"></div>
+        <button class="btn-primary" id="btnRestartWin">NOVA EXPEDIÇÃO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/constants.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/dungeon.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
