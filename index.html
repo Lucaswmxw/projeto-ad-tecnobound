@@ -2,47 +2,592 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VOIDBOUND: DERELICT - Sci-Fi Top-Down Roguelike</title>
-  <meta name="description" content="Roguelike de ação top-down em ficção científica com geração procedural, combate de facções, hackeamento, mutações alienígenas e customização modular de robôs.">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VOIDBOUND - Sci-Fi Top-Down Roguelike</title>
+  <meta name="description" content="VOIDBOUND: Roguelike de ação espacial em pixel art com combate de facções, hackeamento, mutações alienígenas e progressão completa por setores.">
+  <style>
+    /* ========================================================
+       VOIDBOUND - RETRO PIXEL ART SCIFI STYLESHEET
+       ======================================================== */
+    :root {
+      --bg-dark: #040508;
+      --bg-panel: rgba(8, 14, 24, 0.94);
+      --border-cyan: #00f0ff;
+      --border-green: #39ff14;
+      --border-amber: #f59e0b;
+      --border-danger: #ff2a5f;
+      --border-purple: #bf55ec;
+      --border-crimson: #ff0055;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --font-pixel: 'Courier New', 'Consolas', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    html, body {
+      background-color: #020305;
+      color: var(--text-main);
+      font-family: var(--font-pixel);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Screen container preserving 3:2 (960x640) retro resolution */
+    #gameWrapper {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: calc(100vh * (960 / 640));
+      max-height: calc(100vw * (640 / 960));
+      aspect-ratio: 960 / 640;
+      background: #000;
+      border: 3px solid #14283c;
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.2), inset 0 0 60px rgba(0, 0, 0, 0.95);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* CRT Scanline & Grain overlay */
+    #crtOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+      background-size: 100% 3px, 4px 100%;
+      z-index: 40;
+      opacity: 0.85;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: crosshair;
+    }
+
+    /* --- RETRO PIXEL HUD OVERLAY --- */
+    #hudOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px;
+      z-index: 20;
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .hud-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .pixel-badge {
+      background: var(--bg-panel);
+      border: 2px solid #1e3a5f;
+      box-shadow: 2px 2px 0px #091322;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    .o2-badge.vacuum-alert {
+      border-color: var(--border-danger);
+      animation: pixelAlert 0.9s infinite alternate;
+    }
+
+    @keyframes pixelAlert {
+      0% { box-shadow: 0 0 0 rgba(255, 42, 95, 0); }
+      100% { box-shadow: 0 0 14px rgba(255, 42, 95, 0.85); }
+    }
+
+    .pixel-bar-bg {
+      width: 86px;
+      height: 10px;
+      background: #09111c;
+      border: 1px solid #2a4365;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pixel-bar-fill {
+      height: 100%;
+      width: 100%;
+      transition: width 0.15s steps(12);
+    }
+
+    .fill-o2 {
+      background: repeating-linear-gradient(90deg, #00f0ff 0px, #00f0ff 4px, #0284c7 4px, #0284c7 6px);
+    }
+
+    .fill-hack {
+      background: repeating-linear-gradient(90deg, #bf55ec 0px, #bf55ec 4px, #7c3aed 4px, #7c3aed 6px);
+    }
+
+    .hud-center {
+      text-align: center;
+    }
+
+    .game-logo-badge {
+      font-size: 11px;
+      color: var(--border-cyan);
+      letter-spacing: 3px;
+      font-weight: bold;
+      margin-bottom: 2px;
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+    }
+
+    #sectorBanner {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      background: var(--bg-panel);
+      border: 2px solid var(--border-cyan);
+      box-shadow: 2px 2px 0px #091322, 0 0 10px rgba(0, 240, 255, 0.3);
+      padding: 4px 14px;
+      text-transform: uppercase;
+    }
+
+    .hud-right {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .hud-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hud-btn {
+      background: var(--bg-panel);
+      border: 2px solid #2a4365;
+      box-shadow: 2px 2px 0px #091322;
+      color: var(--text-main);
+      padding: 4px 8px;
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.1s;
+    }
+
+    .hud-btn:hover, .hud-btn:active {
+      border-color: var(--border-cyan);
+      background: #14283c;
+      color: #fff;
+    }
+
+    #minimapContainer {
+      background: var(--bg-panel);
+      border: 2px solid #1e3a5f;
+      box-shadow: 2px 2px 0px #091322;
+      padding: 2px;
+    }
+
+    #minimapCanvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .hud-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: auto;
+    }
+
+    .weapon-card {
+      background: var(--bg-panel);
+      border: 2px solid #1e3a5f;
+      box-shadow: 2px 2px 0px #091322;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* --- MOBILE VIRTUAL TOUCH CONTROLS --- */
+    #mobileControls {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 30;
+      display: none;
+    }
+
+    .touch-interactive {
+      pointer-events: auto;
+    }
+
+    #joystickZone {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      width: 120px;
+      height: 120px;
+      background: rgba(14, 25, 45, 0.45);
+      border: 2px dashed rgba(0, 240, 255, 0.5);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #joystickKnob {
+      width: 48px;
+      height: 48px;
+      background: var(--border-cyan);
+      border: 2px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--border-cyan);
+      transform: translate(0px, 0px);
+    }
+
+    #touchActionZone {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .touch-btn {
+      width: 58px;
+      height: 58px;
+      background: var(--bg-panel);
+      border: 2px solid var(--border-cyan);
+      box-shadow: 3px 3px 0 #000;
+      color: #fff;
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .touch-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #000;
+      background: #1e3a5f;
+    }
+
+    .touch-btn.dash-btn {
+      border-color: #38bdf8;
+      background: rgba(14, 116, 144, 0.5);
+    }
+
+    .touch-btn.hack-btn {
+      border-color: var(--border-purple);
+      background: rgba(126, 34, 206, 0.5);
+    }
+
+    .touch-btn.fire-btn {
+      width: 66px;
+      height: 66px;
+      border-color: var(--border-danger);
+      background: rgba(190, 18, 60, 0.5);
+    }
+
+    /* --- RETRO PIXEL MODALS --- */
+    .game-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(4, 6, 10, 0.94);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      padding: 16px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .modal-box {
+      background: #080d16;
+      border: 3px solid var(--border-cyan);
+      box-shadow: 4px 4px 0px #000, 0 0 25px rgba(0, 240, 255, 0.25);
+      padding: 24px;
+      max-width: 680px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      text-align: center;
+    }
+
+    .modal-box h1 {
+      font-size: 26px;
+      color: var(--border-cyan);
+      letter-spacing: 3px;
+      text-shadow: 2px 2px 0px #000;
+      margin-bottom: 6px;
+    }
+
+    .modal-subtitle {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-bottom: 16px;
+      letter-spacing: 1px;
+    }
+
+    .retro-btn {
+      background: var(--border-cyan);
+      color: #05070b;
+      border: 2px solid #ffffff;
+      box-shadow: 3px 3px 0px #000;
+      font-family: var(--font-pixel);
+      font-size: 14px;
+      font-weight: bold;
+      padding: 10px 24px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 8px 6px;
+      display: inline-block;
+      transition: transform 0.05s;
+    }
+
+    .retro-btn:hover {
+      background: #7dd3fc;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #000;
+    }
+
+    .retro-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #000;
+    }
+
+    .retro-btn-green {
+      background: var(--border-green);
+      color: #031505;
+      border-color: #a7f3d0;
+    }
+
+    .retro-btn-secondary {
+      background: #1e293b;
+      color: #cbd5e1;
+      border-color: #475569;
+    }
+
+    .lore-panel {
+      background: #05080e;
+      border: 2px solid #1e3a5f;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      text-align: left;
+      margin-bottom: 14px;
+    }
+
+    .lore-panel ul {
+      margin-left: 18px;
+      margin-top: 6px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 8px;
+      margin: 14px 0;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .ctrl-chip {
+      background: #09111c;
+      border-left: 3px solid var(--border-cyan);
+      padding: 6px 10px;
+    }
+
+    .ctrl-chip strong {
+      color: var(--border-cyan);
+    }
+
+    /* Loadout Grid */
+    .loadout-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .loadout-slot {
+      background: #05080e;
+      border: 2px solid #1e3a5f;
+      padding: 10px;
+    }
+
+    .slot-tag {
+      font-size: 10px;
+      color: var(--border-cyan);
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+
+    .slot-title {
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+      margin: 4px 0;
+    }
+
+    .slot-desc {
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .module-item-card {
+      background: #05080e;
+      border: 1px solid #1e3a5f;
+      padding: 8px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+    }
+
+    .mutation-card-view {
+      background: rgba(57, 255, 20, 0.08);
+      border: 2px solid var(--border-green);
+      padding: 14px;
+      margin: 14px 0;
+      text-align: left;
+    }
+
+    .mutation-card-view .boon {
+      color: var(--border-green);
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .mutation-card-view .drawback {
+      color: var(--border-danger);
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    /* Victory Modal styling */
+    .victory-box {
+      border-color: var(--border-cyan);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.4);
+    }
+
+    .victory-badge {
+      background: rgba(0, 240, 255, 0.1);
+      border: 2px solid var(--border-cyan);
+      padding: 12px;
+      margin: 12px 0;
+      color: #fff;
+      font-weight: bold;
+      font-size: 14px;
+      letter-spacing: 2px;
+      line-height: 1.8;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #05080e; }
+    ::-webkit-scrollbar-thumb { background: #1e3a5f; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-cyan); }
+  </style>
 </head>
 <body>
 
   <div id="gameWrapper">
     <!-- Game Canvas -->
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="960" height="640"></canvas>
+
+    <!-- CRT Overlay -->
+    <div id="crtOverlay"></div>
 
     <!-- HUD Overlay -->
-    <div id="hudOverlay" class="hidden">
+    <div id="hudOverlay">
       <!-- Top Bar -->
       <div class="hud-top">
         <div class="hud-left">
-          <!-- HP & Shield -->
-          <div class="status-badge">
+          <!-- HP & Shield Badges -->
+          <div class="pixel-badge">
             <span id="hpDisplay">❤️❤️❤️❤️❤️❤️</span>
-            <span id="shieldDisplay">🛡️🛡️</span>
+            <span id="shieldDisplay" style="margin-left: 6px;">🛡️🛡️</span>
           </div>
 
-          <!-- Oxygen Bar -->
-          <div class="status-badge o2-widget" id="o2Widget">
-            <span>🫧 O2</span>
-            <div class="meter-bar">
-              <div id="o2BarFill" class="meter-fill o2" style="width: 100%;"></div>
+          <!-- Oxygen Gauge -->
+          <div class="pixel-badge o2-badge" id="o2Widget">
+            <span style="color: #38bdf8;">O2</span>
+            <div class="pixel-bar-bg">
+              <div id="o2BarFill" class="pixel-bar-fill fill-o2" style="width: 100%;"></div>
             </div>
-            <span id="o2Value">100%</span>
+            <span id="o2Value" style="color: #38bdf8;">100%</span>
           </div>
 
-          <!-- Hacking Tool EMP -->
-          <div class="status-badge" id="hackWidget">
-            <span>⚡ HACK [E]</span>
-            <div class="meter-bar">
-              <div id="hackBarFill" class="meter-fill hack" style="width: 100%;"></div>
+          <!-- EMP Hacking Gauge -->
+          <div class="pixel-badge" id="hackWidget">
+            <span style="color: var(--border-purple);">EMP [E]</span>
+            <div class="pixel-bar-bg">
+              <div id="hackBarFill" class="pixel-bar-fill fill-hack" style="width: 100%;"></div>
             </div>
+            <span id="hackStatus" style="font-size: 9px; color: var(--border-purple);">PRONTO</span>
           </div>
         </div>
 
         <div class="hud-center">
+          <div class="game-logo-badge">VOIDBOUND</div>
           <div id="sectorBanner">SETOR 01: BIOMASSA ALIENÍGENA</div>
         </div>
 
@@ -51,6 +596,7 @@
             <button class="hud-btn" id="btnOpenLoadout">⚙️ LOADOUT [TAB]</button>
             <button class="hud-btn" id="btnToggleAudio">🔊 BGM: ON</button>
             <button class="hud-btn" id="btnToggleSfx">💥 SFX: ON</button>
+            <button class="hud-btn" id="btnPauseGame">⏸️ PAUSA [P]</button>
           </div>
 
           <!-- Minimap -->
@@ -62,119 +608,4197 @@
 
       <!-- Bottom Bar -->
       <div class="hud-bottom">
-        <div class="weapon-slot">
-          <span style="color: var(--accent-amber);">🔩 SUCATA: <strong id="scrapValue">20</strong></span>
+        <div class="weapon-card">
+          <span style="color: var(--border-amber);">🔩 SUCATA: <strong id="scrapValue">20</strong></span>
         </div>
-        <div class="weapon-slot">
-          <span>ARMA ATIVA: <strong id="activeWeaponName" style="color: var(--accent-cyan);">🔫 Blaster de Plasma</strong></span>
+        <div class="weapon-card">
+          <span>ARMA ATIVA: <strong id="activeWeaponName" style="color: var(--border-cyan);">Blaster de Plasma</strong></span>
         </div>
+      </div>
+    </div>
+
+    <!-- Mobile Virtual Touch Controls -->
+    <div id="mobileControls">
+      <div id="joystickZone" class="touch-interactive">
+        <div id="joystickKnob"></div>
+      </div>
+      <div id="touchActionZone" class="touch-interactive">
+        <button class="touch-btn dash-btn" id="btnTouchDash">DASH<br><span style="font-size:9px;">[ESQ]</span></button>
+        <button class="touch-btn hack-btn" id="btnTouchHack">HACK<br><span style="font-size:9px;">[EMP]</span></button>
+        <button class="touch-btn fire-btn" id="btnTouchFire">ATIRAR<br><span style="font-size:9px;">[AUTO]</span></button>
       </div>
     </div>
 
     <!-- Start / Title Screen Modal -->
     <div id="startScreen" class="game-modal">
-      <div class="modal-content">
-        <h1>VOIDBOUND: DERELICT</h1>
-        <div class="modal-subtitle">ROGUELIKE DE AÇÃO TOP-DOWN ESPACIAL</div>
+      <div class="modal-box">
+        <h1>VOIDBOUND</h1>
+        <div class="modal-subtitle">ROGUELIKE DE AÇÃO ESPACIAL // ESTÉTICA PIXEL ART RETRÔ</div>
 
-        <div class="lore-box">
-          Você desperta a bordo de uma nave-mãe de pesquisa à deriva no espaço profundo. A estação foi tomada por uma infestação biológica e por defesas cibernéticas autônomas em guerra aberta pelo controle do complexo.
+        <div class="lore-panel">
+          Você acorda nos confins de uma nave-mãe alienígena à deriva no espaço profundo. A estação foi tomada por uma infestação biológica e por defesas cibernéticas em conflito contínuo.
+          <br><br>
+          Seu objetivo: navegar pelos 4 setores da estação, expurgar os guardiões, alcançar o <strong>Núcleo da Nave</strong> e aniquilar o <strong>Archon do Vazio</strong> para concluir a expedição com vida.
           <ul>
-            <li><strong>Conflito de Facções:</strong> Aliens e robôs atacam-se mutuamente! Aproveite o caos para flanquear ou escapar.</li>
-            <li><strong>Hackeamento [E / Botão Direito]:</strong> Hackeie robôs de combate para transformá-los em aliados temporários.</li>
-            <li><strong>Módulos Robóticos:</strong> Colete e encaixe peças para criar builds customizadas de armas, chassis e motores.</li>
-            <li><strong>Mutações Alienígenas:</strong> Absorva mutagênicos com poderes extremos acompanhados de sequelas imprevisíveis.</li>
-            <li><strong>Risco de Oxigênio:</strong> No setor de vácuo, monitore seu cilindro de O2 para não asfixiar.</li>
+            <li><strong>Conflito de Facções:</strong> Aliens e robôs enfrentam-se; aproveite para flanquear.</li>
+            <li><strong>Hackeamento EMP [E / Touch]:</strong> Neutralize robôs e transforme-os em aliados temporários.</li>
+            <li><strong>Módulos Tecnológicos:</strong> Equipe chassis, armas, propulsores e núcleos.</li>
+            <li><strong>Mutações Simbióticas:</strong> Aceite poderes alienígenas acompanhados de custos biológicos.</li>
+            <li><strong>Despressurização:</strong> No setor de vácuo, monitore seu cilindro de O2 para não asfixiar.</li>
           </ul>
         </div>
 
         <div class="controls-grid">
-          <div class="control-item"><strong>WASD ou Setas:</strong> Movimento</div>
-          <div class="control-item"><strong>Mouse + Botão Esquerdo:</strong> Mirar e Atirar</div>
-          <div class="control-item"><strong>Shift / Espaço:</strong> Dash / Esquiva com I-frames</div>
-          <div class="control-item"><strong>E ou Botão Direito:</strong> Feixe de Hack EMP</div>
-          <div class="control-item"><strong>TAB ou I:</strong> Gerenciador de Loadout</div>
-          <div class="control-item"><strong>ESC ou P:</strong> Pausar o Jogo</div>
+          <div class="ctrl-chip"><strong>WASD / Setas / Joystick:</strong> Movimento</div>
+          <div class="ctrl-chip"><strong>Mouse / Toque:</strong> Mirar e Disparar</div>
+          <div class="ctrl-chip"><strong>Shift / Espaço / [DASH]:</strong> Dash com I-frames</div>
+          <div class="ctrl-chip"><strong>E / Botão Direito / [HACK]:</strong> Pulso de Hack EMP</div>
+          <div class="ctrl-chip"><strong>TAB / I:</strong> Gerenciador de Loadout</div>
+          <div class="ctrl-chip"><strong>ESC / P:</strong> Pausa</div>
         </div>
 
-        <button class="btn-primary" id="btnStartGame">INICIAR EXPEDIÇÃO</button>
+        <div>
+          <button class="retro-btn" id="btnStartGame">INICIAR EXPEDIÇÃO</button>
+        </div>
       </div>
     </div>
 
     <!-- Loadout / Inventory Modal -->
     <div id="loadoutModal" class="game-modal hidden">
-      <div class="modal-content loadout-container">
-        <h1>SISTEMA DE LOADOUT MODULAR</h1>
-        <div class="modal-subtitle">Equipe módulos robóticos e inspecione mutações orgânicas ativas</div>
+      <div class="modal-box">
+        <h1>VOIDBOUND // LOADOUT MODULAR</h1>
+        <div class="modal-subtitle">Equipe peças robóticas sobressalentes e verifique suas mutações ativas</div>
 
-        <div class="slots-grid" id="equippedSlots"></div>
+        <div class="loadout-grid" id="equippedSlots"></div>
 
-        <h3 style="font-size: 13px; color: var(--accent-cyan); margin: 12px 0 6px 0; font-family: var(--font-mono);">MÓDULOS DE ARMAZENAMENTO</h3>
-        <div id="inventoryModules" style="max-height: 120px; overflow-y: auto;"></div>
+        <h3 style="font-size: 12px; color: var(--border-cyan); margin: 10px 0 6px 0; text-align: left;">ARMAZENAMENTO DE COMPONENTES</h3>
+        <div id="inventoryModules" style="max-height: 110px; overflow-y: auto;"></div>
 
-        <h3 style="font-size: 13px; color: var(--accent-green); margin: 14px 0 6px 0; font-family: var(--font-mono);">MUTAÇÕES ALIENÍGENAS ATIVAS</h3>
-        <div id="activeMutationsList" style="max-height: 120px; overflow-y: auto;"></div>
+        <h3 style="font-size: 12px; color: var(--border-green); margin: 12px 0 6px 0; text-align: left;">MUTAÇÕES ALIENÍGENAS ATIVAS</h3>
+        <div id="activeMutationsList" style="max-height: 110px; overflow-y: auto;"></div>
 
-        <div style="text-align: center; margin-top: 15px;">
-          <button class="btn-primary" id="btnCloseLoadout">RETORNAR AO COMBATE</button>
+        <div style="margin-top: 14px;">
+          <button class="retro-btn" id="btnCloseLoadout">RETORNAR AO COMBATE</button>
         </div>
       </div>
     </div>
 
     <!-- Alien Mutagen Prompt Modal -->
     <div id="mutagenModal" class="game-modal hidden">
-      <div class="modal-content">
-        <h1 style="color: var(--accent-green);">🧬 CÂMARA DE INFUSÃO MUTAGÊNICA</h1>
-        <div class="modal-subtitle">Uma colônia alienígena viva oferece aprimoramento simbiótico... a um custo biológico.</div>
+      <div class="modal-box">
+        <h1 style="color: var(--border-green);">VOIDBOUND // CÂMARA MUTAGÊNICA</h1>
+        <div class="modal-subtitle">Uma colônia simbiótica viva oferece aprimoramento celular a um custo biológico.</div>
 
-        <div class="mutagen-card">
-          <h2 id="mutagenTitle" style="color: #fff; font-size: 18px; margin-bottom: 8px;">MUTAÇÃO</h2>
-          <div class="mutagen-boon"><strong>Vantagem (Boon):</strong> <span id="mutagenBoon"></span></div>
-          <div class="mutagen-drawback"><strong>Efeito Colateral (Drawback):</strong> <span id="mutagenDrawback"></span></div>
+        <div class="mutation-card-view">
+          <h2 id="mutagenTitle" style="color: #fff; font-size: 16px; margin-bottom: 8px;">MUTAÇÃO</h2>
+          <div class="boon">🟢 Vantagem: <span id="mutagenBoon"></span></div>
+          <div class="drawback">🔴 Efeito Colateral: <span id="mutagenDrawback"></span></div>
         </div>
 
         <div>
-          <button class="btn-primary" id="btnAcceptMutation" style="background: var(--accent-green); color: #000;">ACEITAR MUTAÇÃO</button>
-          <button class="btn-secondary" id="btnRejectMutation">PURGAR E IGNORAR</button>
+          <button class="retro-btn retro-btn-green" id="btnAcceptMutation">ACEITAR MUTAÇÃO</button>
+          <button class="retro-btn retro-btn-secondary" id="btnRejectMutation">PURGAR E IGNORAR</button>
         </div>
       </div>
     </div>
 
     <!-- Pause Modal -->
     <div id="pauseModal" class="game-modal hidden">
-      <div class="modal-content">
-        <h1>SISTEMAS PAUSADOS</h1>
-        <div class="modal-subtitle">Partida em espera</div>
-        <button class="btn-primary" id="btnResume">CONTINUAR</button>
+      <div class="modal-box">
+        <h1>VOIDBOUND // PAUSA</h1>
+        <div class="modal-subtitle">Sistemas e simulação espacial em espera</div>
+        <div>
+          <button class="retro-btn" id="btnResume">CONTINUAR</button>
+          <button class="retro-btn retro-btn-secondary" id="btnRestartFromPause">REINICIAR RUN</button>
+        </div>
       </div>
     </div>
 
     <!-- Game Over Screen -->
     <div id="gameOverModal" class="game-modal hidden">
-      <div class="modal-content">
-        <h1 style="color: var(--accent-danger);">SINAIS VITAIS PERDIDOS</h1>
-        <div class="modal-subtitle">Seu exoesqueleto sucumbiu aos perigos da estação à deriva.</div>
-        <div id="gameOverStats" class="lore-box"></div>
-        <button class="btn-primary" id="btnRestart">REINICIAR SISTEMAS (NOVA RUN)</button>
+      <div class="modal-box">
+        <h1 style="color: var(--border-danger);">VOIDBOUND // SINAIS VITAIS PERDIDOS</h1>
+        <div class="modal-subtitle">Seu exoesqueleto sucumbiu aos perigos da nave à deriva.</div>
+        <div id="gameOverStats" class="lore-panel"></div>
+        <button class="retro-btn" id="btnRestart">REINICIAR EXPEDIÇÃO (NEW RUN)</button>
       </div>
     </div>
 
-    <!-- Victory Screen -->
+    <!-- Victory Screen (Finish the Run) -->
     <div id="victoryModal" class="game-modal hidden">
-      <div class="modal-content">
-        <h1 style="color: var(--accent-cyan);">MISSÃO CONCLUÍDA: FUGA BEM-SUCEDIDA</h1>
-        <div class="modal-subtitle">Você neutralizou o Reator de Matéria Escura e escapou nos módulos de evacuação.</div>
-        <div id="victoryStats" class="lore-box"></div>
-        <button class="btn-primary" id="btnRestartWin">NOVA EXPEDIÇÃO</button>
+      <div class="modal-box victory-box">
+        <h1 style="color: var(--border-cyan);">VOIDBOUND</h1>
+        <div class="victory-badge">
+          CORE DESTROYED<br>
+          THE STATION HAS FALLEN SILENT<br>
+          RUN COMPLETE
+        </div>
+        <div class="modal-subtitle">Você purgou o Archon do Vazio e libertou a estação de sua agonia perpétua.</div>
+        <div id="victoryStats" class="lore-panel"></div>
+        <button class="retro-btn" id="btnRestartWin">NEW RUN</button>
       </div>
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="js/constants.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/entities.js"></script>
-  <script src="js/dungeon.js"></script>
-  <script src="js/game.js"></script>
+  <script>
+    // =========================================================================
+    // VOIDBOUND - CORE ENGINE SCRIPT
+    // =========================================================================
+
+    // ==========================================
+    // 1. CONFIG & GAME CONSTANTS
+    // ==========================================
+    const CONSTANTS = {
+      GAME_NAME: "VOIDBOUND",
+      CANVAS_WIDTH: 960,
+      CANVAS_HEIGHT: 640,
+      ROOM_WIDTH: 960,
+      ROOM_HEIGHT: 640,
+      TILE_SIZE: 40,
+      DOOR_SIZE: 80,
+      WALL_THICKNESS: 40,
+
+      FACTIONS: {
+        PLAYER: 'player',
+        ALIEN: 'alien',
+        ROBOT: 'robot',
+        VOID: 'void',
+        NEUTRAL: 'neutral'
+      },
+
+      // Complete 4-Sector Progression:
+      // Start -> Organic (Boss Gorgon) -> Robotic (Boss Titan) -> Vacuum (Boss Entropia) -> Core (Final Boss Archon) -> Victory!
+      SECTORS: [
+        {
+          id: 1,
+          name: "Setor 01: Biomassa Alienígena",
+          theme: "organic",
+          wallColor: "#172b1d",
+          wallBevel: "#244b2f",
+          floorColor: "#0d1a12",
+          accentColor: "#39ff14",
+          ambientMusic: "organic",
+          hasVacuum: false,
+          roomCount: 8,
+          description: "Paredes pulsantes de biomassa viva, casulos de esporos e criaturas territoriais."
+        },
+        {
+          id: 2,
+          name: "Setor 02: Complexo Autômato",
+          theme: "robotic",
+          wallColor: "#111c2a",
+          wallBevel: "#1e344e",
+          floorColor: "#0b121b",
+          accentColor: "#00f0ff",
+          ambientMusic: "robotic",
+          hasVacuum: false,
+          roomCount: 10,
+          description: "Corredores industriais patrulhados por autômatos, torres sentinelas e drones de combate."
+        },
+        {
+          id: 3,
+          name: "Setor 03: Vácuo Profundo",
+          theme: "vacuum",
+          wallColor: "#181329",
+          wallBevel: "#2a2147",
+          floorColor: "#080611",
+          accentColor: "#bf55ec",
+          ambientMusic: "vacuum",
+          hasVacuum: true,
+          roomCount: 11,
+          description: "Casco externo rompido exposto ao espaço sideral. Gravidade instável e oxigênio finito."
+        },
+        {
+          id: 4,
+          name: "Setor 04: Núcleo da Nave",
+          theme: "core",
+          wallColor: "#2a0e1c",
+          wallBevel: "#4d1b35",
+          floorColor: "#140610",
+          accentColor: "#ff0055",
+          ambientMusic: "core",
+          hasVacuum: false,
+          roomCount: 8,
+          description: "O coração biomecânico da estação. Onde a inteligência alienígena fundiu-se aos reatores."
+        }
+      ],
+
+      MODULE_SLOTS: {
+        WEAPON: 'weapon',
+        CHASSIS: 'chassis',
+        ENGINE: 'engine',
+        CORE: 'core'
+      },
+
+      MODULES: [
+        // WEAPONS
+        {
+          id: 'weapon_blaster',
+          name: 'Blaster de Plasma Padrão',
+          slot: 'weapon',
+          rarity: 'common',
+          icon: '🔫',
+          description: 'Dispara pulsos de plasma rápidos e precisos.',
+          fireRate: 5.5,
+          damage: 15,
+          speed: 560,
+          bulletType: 'plasma',
+          cost: 15
+        },
+        {
+          id: 'weapon_shotgun',
+          name: 'Dispersor de Fótons (Shotgun)',
+          slot: 'weapon',
+          rarity: 'rare',
+          icon: '💥',
+          description: 'Dispara rajada de 5 projéteis de alto impacto e repulsão.',
+          fireRate: 2.1,
+          damage: 11,
+          pellets: 5,
+          spread: 0.38,
+          speed: 480,
+          bulletType: 'scatter',
+          cost: 30
+        },
+        {
+          id: 'weapon_railgun',
+          name: 'Canhão de Trânsito (Railgun)',
+          slot: 'weapon',
+          rarity: 'rare',
+          icon: '⚡',
+          description: 'Feixe de alta densidade perfurante que atravessa múltiplos alvos.',
+          fireRate: 1.2,
+          damage: 50,
+          speed: 920,
+          pierce: 4,
+          bulletType: 'rail',
+          cost: 35
+        },
+        {
+          id: 'weapon_missiles',
+          name: 'Lança Micro-Mísseis',
+          slot: 'weapon',
+          rarity: 'epic',
+          icon: '🚀',
+          description: 'Lança micro-mísseis autoguiados que caçam alvos hostis.',
+          fireRate: 2.8,
+          damage: 24,
+          speed: 400,
+          homing: true,
+          bulletType: 'missile',
+          cost: 45
+        },
+        {
+          id: 'weapon_arc',
+          name: 'Emissor de Arco Elétrico',
+          slot: 'weapon',
+          rarity: 'epic',
+          icon: '🌩️',
+          description: 'Dispara correntes elétricas que saltam entre inimigos próximos.',
+          fireRate: 3.4,
+          damage: 19,
+          speed: 620,
+          chainTargets: 3,
+          bulletType: 'arc',
+          cost: 40
+        },
+
+        // CHASSIS
+        {
+          id: 'chassis_nano',
+          name: 'Escudo Nanite Adaptativo',
+          slot: 'chassis',
+          rarity: 'common',
+          icon: '🛡️',
+          description: 'Regenera 1 ponto de escudo após 7s sem dano. +1 Escudo Máximo.',
+          bonusShield: 1,
+          shieldRegenDelay: 7.0,
+          cost: 20
+        },
+        {
+          id: 'chassis_reactive',
+          name: 'Blindagem de Pulso Reativo',
+          slot: 'chassis',
+          rarity: 'rare',
+          icon: '💠',
+          description: 'Ao perder o escudo, libera uma onda de choque EMP que empurra e atordoa.',
+          empOnBreak: true,
+          bonusHp: 1,
+          cost: 30
+        },
+        {
+          id: 'chassis_vacuum',
+          name: 'Armadura Selada de Vácuo',
+          slot: 'chassis',
+          rarity: 'rare',
+          icon: '🤿',
+          description: 'Reduz consumo de Oxigênio no Vácuo em 50% e confere imunidade a poças ácidas.',
+          o2Efficiency: 0.5,
+          acidImmunity: true,
+          cost: 28
+        },
+
+        // ENGINE
+        {
+          id: 'engine_booster',
+          name: 'Propulsor de Hiperespaço',
+          slot: 'engine',
+          rarity: 'common',
+          icon: '💨',
+          description: 'Permite Dash evasivo rápido com invulnerabilidade temporária.',
+          dashCooldown: 1.4,
+          speedBonus: 15,
+          cost: 20
+        },
+        {
+          id: 'engine_warp',
+          name: 'Flash Quântico',
+          slot: 'engine',
+          rarity: 'rare',
+          icon: '✨',
+          description: 'O Dash emite uma explosão de fótons que atordoa inimigos no ponto de partida.',
+          dashStun: true,
+          dashCooldown: 1.8,
+          speedBonus: 25,
+          cost: 35
+        },
+        {
+          id: 'engine_combustion',
+          name: 'Pós-Combustão Quântica',
+          slot: 'engine',
+          rarity: 'epic',
+          icon: '🔥',
+          description: 'Deixa rastro de plasma fervente durante o Dash, queimando inimigos.',
+          fireTrail: true,
+          speedBonus: 30,
+          cost: 40
+        },
+
+        // CORE
+        {
+          id: 'core_overclock',
+          name: 'Transmissor Overclock',
+          slot: 'core',
+          rarity: 'rare',
+          icon: '💻',
+          description: 'Aumenta duração de hack de robôs em 75% e recarrega feixe EMP 40% mais rápido.',
+          hackDurationMult: 1.75,
+          hackCooldownMult: 0.6,
+          cost: 30
+        },
+        {
+          id: 'core_drone',
+          name: 'Drone de Apoio Sentinel-X',
+          slot: 'core',
+          rarity: 'epic',
+          icon: '🤖',
+          description: 'Um drone autônomo orbita seu traje disparando contra ameaças hostis.',
+          hasCompanionDrone: true,
+          cost: 45
+        },
+        {
+          id: 'core_magnet',
+          name: 'Magneto de Sucata & O2',
+          slot: 'core',
+          rarity: 'common',
+          icon: '🧲',
+          description: 'Atrai Sucata, Células de Escudo e Tanques de O2 a longa distância.',
+          pickupRadiusMult: 3.5,
+          cost: 20
+        }
+      ],
+
+      MUTATIONS: [
+        {
+          id: 'mut_caustic_bile',
+          name: 'Bílis Cáustica',
+          icon: '🧪',
+          boon: 'Seus disparos deixam poças de ácido tóxico que dissolvem inimigos.',
+          drawback: '-12% de velocidade de locomoção por peso metabólico.',
+          apply: (player) => {
+            player.mutations.causticBile = true;
+            player.speedMult *= 0.88;
+          }
+        },
+        {
+          id: 'mut_symbiotic_tentacle',
+          name: 'Tentáculo Simbiótico',
+          icon: '🐙',
+          boon: 'Chicoteia automaticamente inimigos próximos a cada 2.5s com alto impacto.',
+          drawback: 'Parasita drena reservas: Escudo Máximo reduzido em 1.',
+          apply: (player) => {
+            player.mutations.symbioticTentacle = true;
+            player.maxShield = Math.max(1, player.maxShield - 1);
+            player.shield = Math.min(player.shield, player.maxShield);
+          }
+        },
+        {
+          id: 'mut_predator_adrenals',
+          name: 'Glândula Predatória',
+          icon: '🩸',
+          boon: 'Com menos de 50% de HP, cadência aumenta em 60% e dano em +35%.',
+          drawback: 'Sede celular: perde 1 HP a cada 60s se permanecer fora de combate.',
+          apply: (player) => {
+            player.mutations.predatorAdrenals = true;
+          }
+        },
+        {
+          id: 'mut_contagious_spores',
+          name: 'Esporos Contagiosos',
+          icon: '🍄',
+          boon: 'Inimigos mortos detonam nuvem de esporos que infecta outros alvos.',
+          drawback: 'Espasmos involuntários ocasionais desviam o movimento.',
+          apply: (player) => {
+            player.mutations.contagiousSpores = true;
+          }
+        },
+        {
+          id: 'mut_chitin_shell',
+          name: 'Carcaça Quitinosa',
+          icon: '🪲',
+          boon: '+2 de Vida Máxima e 25% de chance de repelir qualquer ataque.',
+          drawback: 'Couraça espessa interfere nos módulos: Cooldown do Hack +1.0s.',
+          apply: (player) => {
+            player.mutations.chitinShell = true;
+            player.maxHp += 2;
+            player.hp += 2;
+            player.hackCooldownBonus += 1.0;
+          }
+        },
+        {
+          id: 'mut_vampiric_tendrils',
+          name: 'Fios Vampíricos',
+          icon: '💉',
+          boon: 'Eliminar 8 inimigos restaura instantaneamente 1 Ponto de Vida.',
+          drawback: 'Kits médicos Nanite convencionais curam apenas metade do original.',
+          apply: (player) => {
+            player.mutations.vampiricTendrils = true;
+            player.vampireKillsNeeded = 8;
+            player.vampireKillCounter = 0;
+          }
+        }
+      ]
+    };
+
+    // ==========================================
+    // 2. PROCEDURAL WEB AUDIO SYNTHESIZER
+    // ==========================================
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.sfxVolume = 0.6;
+        this.musicVolume = 0.35;
+        this.sfxMuted = false;
+        this.musicMuted = false;
+        this.currentTheme = null;
+        this.musicInterval = null;
+        this.initialized = false;
+      }
+
+      init() {
+        if (this.initialized) return;
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+            this.initialized = true;
+          }
+        } catch (e) {
+          console.warn("Web Audio not supported", e);
+        }
+      }
+
+      ensureContext() {
+        if (!this.initialized) this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      createNoiseBuffer() {
+        if (!this.ctx) return null;
+        const bufferSize = this.ctx.sampleRate * 0.8;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+      }
+
+      playShoot(type = 'plasma') {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+
+        if (type === 'scatter') {
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = this.createNoiseBuffer();
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1400, now);
+          filter.frequency.exponentialRampToValueAtTime(120, now + 0.22);
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(this.sfxVolume * 0.7, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(now);
+          noise.stop(now + 0.23);
+        } else if (type === 'rail') {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(1200, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.35);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } else if (type === 'missile') {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.linearRampToValueAtTime(450, now + 0.16);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.45, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.23);
+        } else if (type === 'arc') {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(700, now);
+          osc.frequency.setValueAtTime(420, now + 0.05);
+          osc.frequency.setValueAtTime(850, now + 0.1);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } else {
+          // Standard plasma chirp
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.45, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.13);
+        }
+      }
+
+      playAlienSpit() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.linearRampToValueAtTime(130, now + 0.16);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.17);
+      }
+
+      playHit(faction = 'alien') {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        if (faction === 'robot') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(820, now);
+          osc.frequency.exponentialRampToValueAtTime(360, now + 0.07);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.28, now);
+        } else {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(170, now);
+          osc.frequency.exponentialRampToValueAtTime(60, now + 0.09);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.32, now);
+        }
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+
+      playPlayerDamage() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.22);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.23);
+      }
+
+      playExplosion() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.createNoiseBuffer();
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(35, now + 0.5);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(this.sfxVolume * 0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+        noise.stop(now + 0.51);
+      }
+
+      playHack() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const freqs = [440, 660, 880, 1320];
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + idx * 0.04);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.35, now + idx * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.04 + 0.07);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.04);
+          osc.stop(now + idx * 0.04 + 0.08);
+        });
+      }
+
+      playDash() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.exponentialRampToValueAtTime(620, now + 0.14);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+
+      playPickup(type = 'scrap') {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        if (type === 'module' || type === 'mutation') {
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.frequency.setValueAtTime(783.99, now + 0.16);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        } else {
+          osc.frequency.setValueAtTime(750, now);
+          osc.frequency.setValueAtTime(1150, now + 0.06);
+          gain.gain.setValueAtTime(this.sfxVolume * 0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+        }
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.36);
+      }
+
+      playDoorOpen() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.linearRampToValueAtTime(260, now + 0.22);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      }
+
+      playBossRoar() {
+        if (this.sfxMuted || !this.ctx) return;
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.linearRampToValueAtTime(130, now + 0.35);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.85);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.92);
+      }
+
+      setMusicTheme(theme) {
+        if (this.currentTheme === theme) return;
+        this.stopMusic();
+        this.currentTheme = theme;
+        if (!this.musicMuted) {
+          this.startMusic();
+        }
+      }
+
+      startMusic() {
+        if (this.musicMuted || !this.currentTheme) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+
+        let step = 0;
+        const bpm = this.currentTheme === 'core' ? 134 : (this.currentTheme === 'robotic' ? 122 : (this.currentTheme === 'organic' ? 82 : 68));
+        const intervalMs = (60 / bpm) * 1000 / 2;
+
+        const organicScale = [55, 58.27, 65.41, 69.30, 82.41, 110];
+        const roboticScale = [65.41, 77.78, 87.31, 98.00, 116.54, 130.81];
+        const vacuumScale = [43.65, 51.91, 65.41, 73.42, 87.31, 130.81];
+        const coreScale = [65.41, 69.30, 82.41, 87.31, 103.83, 130.81];
+
+        let scale = roboticScale;
+        if (this.currentTheme === 'organic') scale = organicScale;
+        if (this.currentTheme === 'vacuum') scale = vacuumScale;
+        if (this.currentTheme === 'core') scale = coreScale;
+
+        this.musicInterval = setInterval(() => {
+          if (this.musicMuted || !this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          // Bass drone
+          if (step % 8 === 0) {
+            const bassOsc = this.ctx.createOscillator();
+            const bassGain = this.ctx.createGain();
+            bassOsc.type = (this.currentTheme === 'robotic' || this.currentTheme === 'core') ? 'sawtooth' : 'triangle';
+            bassOsc.frequency.setValueAtTime(scale[0], now);
+            bassGain.gain.setValueAtTime(this.musicVolume * 0.35, now);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, now + (intervalMs * 7) / 1000);
+            bassOsc.connect(bassGain);
+            bassGain.connect(this.ctx.destination);
+            bassOsc.start(now);
+            bassOsc.stop(now + (intervalMs * 8) / 1000);
+          }
+
+          // Arpeggiated lead
+          if (step % 2 === 0 || ((this.currentTheme === 'robotic' || this.currentTheme === 'core') && Math.random() > 0.35)) {
+            const noteIdx = (step * 3 + Math.floor(step / 4)) % scale.length;
+            const freq = scale[noteIdx] * 4;
+            const arpOsc = this.ctx.createOscillator();
+            const arpGain = this.ctx.createGain();
+            arpOsc.type = (this.currentTheme === 'robotic' || this.currentTheme === 'core') ? 'square' : 'sine';
+            arpOsc.frequency.setValueAtTime(freq, now);
+            arpGain.gain.setValueAtTime(this.musicVolume * 0.12, now);
+            arpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            arpOsc.connect(arpGain);
+            arpGain.connect(this.ctx.destination);
+            arpOsc.start(now);
+            arpOsc.stop(now + 0.15);
+          }
+
+          step = (step + 1) % 16;
+        }, intervalMs);
+      }
+
+      stopMusic() {
+        if (this.musicInterval) {
+          clearInterval(this.musicInterval);
+          this.musicInterval = null;
+        }
+      }
+
+      toggleMusic() {
+        this.musicMuted = !this.musicMuted;
+        if (this.musicMuted) {
+          this.stopMusic();
+        } else {
+          this.startMusic();
+        }
+        return !this.musicMuted;
+      }
+
+      toggleSfx() {
+        this.sfxMuted = !this.sfxMuted;
+        return !this.sfxMuted;
+      }
+    }
+
+    const soundEngine = new SoundEngine();
+
+    // ==========================================
+    // 3. CENTRALIZED INPUT SYSTEM (Desktop & Mobile)
+    // ==========================================
+    class InputSystem {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.keys = {};
+        this.justPressed = {};
+
+        this.mouseX = CONSTANTS.CANVAS_WIDTH / 2;
+        this.mouseY = CONSTANTS.CANVAS_HEIGHT / 2;
+        this.mouseDown = false;
+        this.rightMouseDown = false;
+
+        this.isTouchDevice = false;
+        this.joystick = {
+          active: false,
+          touchId: null,
+          startX: 0,
+          startY: 0,
+          currentX: 0,
+          currentY: 0,
+          dx: 0,
+          dy: 0
+        };
+
+        this.touchAim = {
+          active: false,
+          touchId: null,
+          x: CONSTANTS.CANVAS_WIDTH / 2,
+          y: CONSTANTS.CANVAS_HEIGHT / 2,
+          firing: false
+        };
+
+        this.initDesktop();
+        this.initMobileTouch();
+        this.initWindowFocus();
+      }
+
+      initDesktop() {
+        window.addEventListener('keydown', (e) => {
+          soundEngine.ensureContext();
+          if (!this.keys[e.code]) {
+            this.justPressed[e.code] = true;
+          }
+          this.keys[e.code] = true;
+
+          if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) {
+            e.preventDefault();
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          this.keys[e.code] = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          this.updateMouseCoords(e.clientX, e.clientY);
+        });
+
+        this.canvas.addEventListener('mousedown', (e) => {
+          soundEngine.ensureContext();
+          this.updateMouseCoords(e.clientX, e.clientY);
+          if (e.button === 0) this.mouseDown = true;
+          if (e.button === 2) this.rightMouseDown = true;
+        });
+
+        window.addEventListener('mouseup', (e) => {
+          if (e.button === 0) this.mouseDown = false;
+          if (e.button === 2) this.rightMouseDown = false;
+        });
+
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+      }
+
+      updateMouseCoords(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const scaleX = CONSTANTS.CANVAS_WIDTH / rect.width;
+        const scaleY = CONSTANTS.CANVAS_HEIGHT / rect.height;
+        this.mouseX = Math.max(0, Math.min(CONSTANTS.CANVAS_WIDTH, (clientX - rect.left) * scaleX));
+        this.mouseY = Math.max(0, Math.min(CONSTANTS.CANVAS_HEIGHT, (clientY - rect.top) * scaleY));
+      }
+
+      initMobileTouch() {
+        const joystickZone = document.getElementById('joystickZone');
+        const joystickKnob = document.getElementById('joystickKnob');
+        const mobileOverlay = document.getElementById('mobileControls');
+
+        const detectTouch = () => {
+          if (!this.isTouchDevice) {
+            this.isTouchDevice = true;
+            mobileOverlay.style.display = 'block';
+          }
+        };
+
+        window.addEventListener('touchstart', detectTouch, { passive: true });
+
+        if (joystickZone && joystickKnob) {
+          joystickZone.addEventListener('touchstart', (e) => {
+            soundEngine.ensureContext();
+            const touch = e.changedTouches[0];
+            const rect = joystickZone.getBoundingClientRect();
+            this.joystick.active = true;
+            this.joystick.touchId = touch.identifier;
+            this.joystick.startX = rect.left + rect.width / 2;
+            this.joystick.startY = rect.top + rect.height / 2;
+            this.updateJoystick(touch.clientX, touch.clientY, joystickKnob);
+          }, { passive: false });
+
+          window.addEventListener('touchmove', (e) => {
+            if (!this.joystick.active) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+              const t = e.changedTouches[i];
+              if (t.identifier === this.joystick.touchId) {
+                this.updateJoystick(t.clientX, t.clientY, joystickKnob);
+                break;
+              }
+            }
+          }, { passive: false });
+
+          const endJoystick = (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+              if (e.changedTouches[i].identifier === this.joystick.touchId) {
+                this.joystick.active = false;
+                this.joystick.touchId = null;
+                this.joystick.dx = 0;
+                this.joystick.dy = 0;
+                joystickKnob.style.transform = `translate(0px, 0px)`;
+                break;
+              }
+            }
+          };
+
+          window.addEventListener('touchend', endJoystick, { passive: true });
+          window.addEventListener('touchcancel', endJoystick, { passive: true });
+        }
+
+        // Direct Touch Aim / Fire on Canvas
+        this.canvas.addEventListener('touchstart', (e) => {
+          soundEngine.ensureContext();
+          const t = e.changedTouches[0];
+          this.touchAim.active = true;
+          this.touchAim.touchId = t.identifier;
+          this.touchAim.firing = true;
+          this.updateMouseCoords(t.clientX, t.clientY);
+        }, { passive: true });
+
+        this.canvas.addEventListener('touchmove', (e) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.identifier === this.touchAim.touchId) {
+              this.updateMouseCoords(t.clientX, t.clientY);
+              break;
+            }
+          }
+        }, { passive: true });
+
+        const endTouchAim = (e) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === this.touchAim.touchId) {
+              this.touchAim.active = false;
+              this.touchAim.touchId = null;
+              this.touchAim.firing = false;
+              break;
+            }
+          }
+        };
+
+        this.canvas.addEventListener('touchend', endTouchAim, { passive: true });
+        this.canvas.addEventListener('touchcancel', endTouchAim, { passive: true });
+
+        // Touch Virtual Buttons
+        const btnTouchDash = document.getElementById('btnTouchDash');
+        if (btnTouchDash) {
+          btnTouchDash.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.justPressed['Space'] = true;
+            this.keys['Space'] = true;
+          });
+          btnTouchDash.addEventListener('touchend', () => {
+            this.keys['Space'] = false;
+          });
+        }
+
+        const btnTouchHack = document.getElementById('btnTouchHack');
+        if (btnTouchHack) {
+          btnTouchHack.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.justPressed['KeyE'] = true;
+            this.keys['KeyE'] = true;
+          });
+          btnTouchHack.addEventListener('touchend', () => {
+            this.keys['KeyE'] = false;
+          });
+        }
+
+        const btnTouchFire = document.getElementById('btnTouchFire');
+        if (btnTouchFire) {
+          btnTouchFire.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.mouseDown = true;
+          });
+          btnTouchFire.addEventListener('touchend', () => {
+            this.mouseDown = false;
+          });
+        }
+      }
+
+      updateJoystick(clientX, clientY, knobEl) {
+        const maxDist = 38;
+        const diffX = clientX - this.joystick.startX;
+        const diffY = clientY - this.joystick.startY;
+        const dist = Math.hypot(diffX, diffY);
+
+        if (dist === 0) {
+          this.joystick.dx = 0;
+          this.joystick.dy = 0;
+          knobEl.style.transform = `translate(0px, 0px)`;
+          return;
+        }
+
+        const clampedDist = Math.min(dist, maxDist);
+        const normX = diffX / dist;
+        const normY = diffY / dist;
+
+        this.joystick.dx = normX * (clampedDist / maxDist);
+        this.joystick.dy = normY * (clampedDist / maxDist);
+
+        knobEl.style.transform = `translate(${normX * clampedDist}px, ${normY * clampedDist}px)`;
+      }
+
+      initWindowFocus() {
+        // Crucial fix: Clear keys on blur so keys NEVER get stuck
+        window.addEventListener('blur', () => {
+          this.clearAll();
+        });
+      }
+
+      clearAll() {
+        this.keys = {};
+        this.justPressed = {};
+        this.mouseDown = false;
+        this.rightMouseDown = false;
+        this.touchAim.firing = false;
+        this.joystick.active = false;
+        this.joystick.dx = 0;
+        this.joystick.dy = 0;
+      }
+
+      postUpdate() {
+        this.justPressed = {};
+      }
+    }
+
+    // ==========================================
+    // 4. PIXEL ART GRAPHICS ENGINE
+    // ==========================================
+    const PixelArt = {
+      px(ctx, x, y, w, h, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x), Math.round(y), w, h);
+      },
+
+      drawFloor(ctx, room, W, H, T) {
+        const theme = room.sector.theme;
+        ctx.fillStyle = room.sector.floorColor;
+        ctx.fillRect(T, T, W - 2 * T, H - 2 * T);
+
+        const tileSize = 40;
+        ctx.lineWidth = 1;
+
+        if (theme === 'organic') {
+          ctx.strokeStyle = '#1b3820';
+          for (let x = T; x < W - T; x += tileSize) {
+            for (let y = T; y < H - T; y += tileSize) {
+              ctx.strokeRect(x, y, tileSize, tileSize);
+              if ((x + y) % 80 === 0) {
+                this.px(ctx, x + 16, y + 16, 8, 8, '#265430');
+                this.px(ctx, x + 18, y + 18, 4, 4, '#39ff14');
+              }
+            }
+          }
+        } else if (theme === 'robotic') {
+          ctx.strokeStyle = '#16283d';
+          for (let x = T; x < W - T; x += tileSize) {
+            for (let y = T; y < H - T; y += tileSize) {
+              ctx.strokeRect(x, y, tileSize, tileSize);
+              this.px(ctx, x + 2, y + 2, 2, 2, '#2a4c72');
+              this.px(ctx, x + tileSize - 4, y + 2, 2, 2, '#2a4c72');
+            }
+          }
+        } else if (theme === 'vacuum') {
+          ctx.strokeStyle = '#22193b';
+          for (let x = T; x < W - T; x += tileSize) {
+            for (let y = T; y < H - T; y += tileSize) {
+              ctx.strokeRect(x, y, tileSize, tileSize);
+              if ((x * 3 + y * 7) % 120 === 0) {
+                this.px(ctx, x + 10, y + 10, 20, 20, '#06040d');
+              }
+            }
+          }
+        } else {
+          // Sector 4: Core
+          ctx.strokeStyle = '#3d122b';
+          for (let x = T; x < W - T; x += tileSize) {
+            for (let y = T; y < H - T; y += tileSize) {
+              ctx.strokeRect(x, y, tileSize, tileSize);
+              if ((x + y * 2) % 80 === 0) {
+                this.px(ctx, x + 14, y + 14, 12, 12, '#5c163b');
+                this.px(ctx, x + 18, y + 18, 4, 4, '#ff0055');
+              }
+            }
+          }
+        }
+      },
+
+      drawWalls(ctx, room, W, H, T) {
+        ctx.fillStyle = room.sector.wallColor;
+        ctx.fillRect(0, 0, W, T);
+        ctx.fillRect(0, H - T, W, T);
+        ctx.fillRect(0, 0, T, H);
+        ctx.fillRect(W - T, 0, T, H);
+
+        ctx.fillStyle = room.sector.wallBevel;
+        ctx.fillRect(T - 6, T - 6, W - 2 * T + 12, 6);
+        ctx.fillRect(T - 6, H - T, W - 2 * T + 12, 6);
+        ctx.fillRect(T - 6, T - 6, 6, H - 2 * T + 12);
+        ctx.fillRect(W - T, T - 6, 6, H - 2 * T + 12);
+
+        ctx.strokeStyle = room.sector.accentColor;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(T, T, W - 2 * T, H - 2 * T);
+      },
+
+      drawDoor(ctx, x, y, dir, isOpen, isLocked, theme) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        const color = isLocked ? '#ff2a5f' : (isOpen ? '#39ff14' : '#00f0ff');
+        const W = dir === 'north' || dir === 'south' ? 80 : 40;
+        const H = dir === 'north' || dir === 'south' ? 40 : 80;
+
+        ctx.fillStyle = '#0a101d';
+        ctx.fillRect(-W / 2, -H / 2, W, H);
+
+        ctx.fillStyle = color;
+        if (dir === 'north' || dir === 'south') {
+          ctx.fillRect(-W / 2 + 6, -4, W - 12, 8);
+          this.px(ctx, -6, -2, 12, 4, isLocked ? '#ff003c' : '#39ff14');
+        } else {
+          ctx.fillRect(-4, -H / 2 + 6, 8, H - 12);
+          this.px(ctx, -2, -6, 4, 12, isLocked ? '#ff003c' : '#39ff14');
+        }
+
+        ctx.strokeStyle = '#334e68';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-W / 2, -H / 2, W, H);
+        ctx.restore();
+      },
+
+      drawPlayer(ctx, p) {
+        if (isNaN(p.x) || isNaN(p.y)) return;
+        ctx.save();
+        ctx.translate(Math.round(p.x), Math.round(p.y));
+
+        // Damage invulnerability blinking
+        if (p.invulnTimer > 0 && Math.floor(p.invulnTimer * 16) % 2 === 0) {
+          ctx.restore();
+          return;
+        }
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(-12, 12, 24, 6);
+
+        ctx.rotate(p.angle);
+
+        // Thruster flame on dash
+        if (p.isDashing) {
+          ctx.fillStyle = '#00f0ff';
+          ctx.fillRect(-22, -4, 8, 8);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(-18, -2, 4, 4);
+        }
+
+        // Armored Legs (Walk animation)
+        const walkCycle = Math.sin(p.walkAnimTimer * 12);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-10, -10 + walkCycle * 2, 6, 8);
+        ctx.fillRect(-10, 2 - walkCycle * 2, 6, 8);
+
+        // Main Armored Exo-Suit Body
+        ctx.fillStyle = p.flashTimer > 0 ? '#ffffff' : '#1e3048';
+        ctx.fillRect(-12, -10, 20, 20);
+
+        // Backpack / Power Core
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-16, -6, 6, 12);
+        this.px(ctx, -14, -2, 2, 4, '#00f0ff');
+
+        // Cyber Helmet & Cyan Visor
+        ctx.fillStyle = '#334e68';
+        ctx.fillRect(-4, -8, 14, 16);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(4, -4, 6, 8);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(6, -2, 3, 4);
+
+        // Equipped Weapon in Hands
+        ctx.fillStyle = '#475569';
+        const weaponId = p.modules.weapon ? p.modules.weapon.id : 'weapon_blaster';
+        if (weaponId === 'weapon_shotgun') {
+          ctx.fillRect(6, 6, 16, 6);
+          this.px(ctx, 20, 7, 3, 4, '#ffaa00');
+        } else if (weaponId === 'weapon_railgun') {
+          ctx.fillRect(6, 6, 22, 4);
+          this.px(ctx, 14, 4, 4, 8, '#bf55ec');
+        } else if (weaponId === 'weapon_missiles') {
+          ctx.fillRect(6, 4, 16, 9);
+          this.px(ctx, 20, 5, 4, 7, '#ff2a5f');
+        } else if (weaponId === 'weapon_arc') {
+          ctx.fillRect(6, 6, 18, 5);
+          this.px(ctx, 18, 3, 3, 11, '#38bdf8');
+        } else {
+          ctx.fillRect(6, 6, 12, 4);
+          this.px(ctx, 16, 7, 3, 2, '#00f0ff');
+        }
+
+        // Chitin mutation visual
+        if (p.mutations.chitinShell) {
+          ctx.fillStyle = '#22c55e';
+          ctx.fillRect(-14, -12, 4, 4);
+          ctx.fillRect(-14, 8, 4, 4);
+        }
+
+        ctx.restore();
+      },
+
+      drawEnemy(ctx, e) {
+        if (isNaN(e.x) || isNaN(e.y)) return;
+        ctx.save();
+        ctx.translate(Math.round(e.x), Math.round(e.y));
+
+        if (e.isHacked) {
+          ctx.strokeStyle = '#00f0ff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-e.radius - 4, -e.radius - 4, (e.radius + 4) * 2, (e.radius + 4) * 2);
+        }
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(-e.radius * 0.8, e.radius * 0.8, e.radius * 1.6, 5);
+
+        const isHit = e.flashTimer > 0;
+
+        if (e instanceof BioSwarmer) {
+          ctx.fillStyle = isHit ? '#ffffff' : (e.isHacked ? '#00f0ff' : '#22c55e');
+          ctx.fillRect(-10, -8, 20, 16);
+          ctx.fillStyle = '#15803d';
+          ctx.fillRect(8, -6, 5, 3);
+          ctx.fillRect(8, 3, 5, 3);
+          this.px(ctx, 6, -3, 3, 2, '#ffffff');
+          this.px(ctx, 6, 2, 3, 2, '#ffffff');
+          const legWiggle = Math.sin(Date.now() * 0.02) * 3;
+          ctx.fillStyle = '#166534';
+          ctx.fillRect(-12, -12 + legWiggle, 4, 4);
+          ctx.fillRect(0, -13 - legWiggle, 4, 4);
+          ctx.fillRect(-12, 8 - legWiggle, 4, 4);
+          ctx.fillRect(0, 9 + legWiggle, 4, 4);
+        } else if (e instanceof BioSpitter) {
+          ctx.fillStyle = isHit ? '#ffffff' : '#14532d';
+          ctx.fillRect(-14, -12, 28, 24);
+          ctx.fillStyle = '#84cc16';
+          ctx.fillRect(-6, -8, 14, 16);
+          this.px(ctx, 0, -4, 6, 8, '#d9f99d');
+          this.px(ctx, 8, -6, 4, 3, '#ef4444');
+          this.px(ctx, 8, 3, 4, 3, '#ef4444');
+        } else if (e instanceof BioBrood) {
+          ctx.fillStyle = isHit ? '#ffffff' : '#064e3b';
+          ctx.fillRect(-18, -16, 36, 32);
+          ctx.fillStyle = '#047857';
+          ctx.fillRect(-14, -12, 28, 6);
+          ctx.fillRect(-14, 6, 28, 6);
+          this.px(ctx, -8, -4, 6, 8, '#a7f3d0');
+          this.px(ctx, 2, -4, 6, 8, '#a7f3d0');
+        } else if (e instanceof RoboDrone) {
+          ctx.fillStyle = isHit ? '#ffffff' : (e.isHacked ? '#00f0ff' : '#64748b');
+          ctx.fillRect(-12, -10, 24, 20);
+          ctx.fillStyle = e.isHacked ? '#38bdf8' : '#ff2a5f';
+          ctx.fillRect(-2, -4, 8, 8);
+          this.px(ctx, 0, -2, 4, 4, '#ffffff');
+          this.px(ctx, -8, -14, 2, 4, '#94a3b8');
+          this.px(ctx, 6, -14, 2, 4, '#94a3b8');
+        } else if (e instanceof RoboSentry) {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(-16, -16, 32, 32);
+          ctx.fillStyle = isHit ? '#ffffff' : (e.isHacked ? '#00f0ff' : '#475569');
+          ctx.fillRect(-12, -12, 24, 24);
+          ctx.save();
+          ctx.rotate(e.turretAngle || 0);
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(8, -8, 14, 5);
+          ctx.fillRect(8, 3, 14, 5);
+          ctx.restore();
+        } else if (e instanceof RoboRoller) {
+          ctx.fillStyle = isHit ? '#ffffff' : '#dc2626';
+          ctx.fillRect(-12, -12, 24, 24);
+          ctx.fillStyle = '#facc15';
+          ctx.fillRect(-10, -4, 20, 8);
+          this.px(ctx, -4, -1, 8, 2, '#000000');
+        } else if (e instanceof VoidPhantom) {
+          ctx.fillStyle = isHit ? '#ffffff' : '#7c3aed';
+          ctx.fillRect(-12, -14, 24, 28);
+          ctx.fillStyle = '#c084fc';
+          ctx.fillRect(-6, -6, 12, 12);
+          this.px(ctx, -2, -2, 4, 4, '#ffffff');
+        } else if (e instanceof BossGorgon) {
+          // Boss Gorgon
+          ctx.fillStyle = isHit ? '#ffffff' : '#14532d';
+          ctx.fillRect(-36, -36, 72, 72);
+          ctx.fillStyle = '#84cc16';
+          ctx.fillRect(-16, -16, 32, 32);
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(-6, -6, 12, 12);
+          this.px(ctx, -2, -2, 4, 4, '#ffffff');
+          ctx.fillStyle = '#052e16';
+          ctx.fillRect(-38, -38, 16, 16);
+          ctx.fillRect(22, -38, 16, 16);
+          ctx.fillRect(-38, 22, 16, 16);
+          ctx.fillRect(22, 22, 16, 16);
+        } else if (e instanceof BossTitan) {
+          // Boss Titan
+          ctx.fillStyle = isHit ? '#ffffff' : '#0f172a';
+          ctx.fillRect(-40, -40, 80, 80);
+          ctx.fillStyle = '#1e3a5f';
+          ctx.fillRect(-32, -32, 64, 64);
+          ctx.fillStyle = '#ff2a5f';
+          ctx.fillRect(-36, -38, 18, 12);
+          ctx.fillRect(18, -38, 18, 12);
+          ctx.fillStyle = '#00f0ff';
+          ctx.fillRect(-12, -12, 24, 24);
+          this.px(ctx, -6, -6, 12, 12, '#ffffff');
+        } else if (e instanceof BossEntropia) {
+          // Boss Entropia
+          ctx.fillStyle = '#3b0764';
+          ctx.fillRect(-42, -42, 84, 84);
+          ctx.fillStyle = isHit ? '#ffffff' : '#6b21a8';
+          ctx.fillRect(-32, -32, 64, 64);
+          ctx.fillStyle = '#05030a';
+          ctx.fillRect(-16, -16, 32, 32);
+          this.px(ctx, -4, -4, 8, 8, '#e9d5ff');
+        } else if (e instanceof BossArchon) {
+          // Final Boss Archon
+          ctx.fillStyle = isHit ? '#ffffff' : '#4c0519';
+          ctx.fillRect(-48, -48, 96, 96);
+          ctx.fillStyle = '#be123c';
+          ctx.fillRect(-36, -36, 72, 72);
+          // Dark matter core
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(-20, -20, 40, 40);
+          ctx.fillStyle = '#ff0055';
+          ctx.fillRect(-10, -10, 20, 20);
+          this.px(ctx, -4, -4, 8, 8, '#ffffff');
+          // Energy Wings / Horns
+          const wingSpread = Math.sin(Date.now() * 0.006) * 6;
+          ctx.fillStyle = '#fb7185';
+          ctx.fillRect(-52 - wingSpread, -40, 10, 30);
+          ctx.fillRect(42 + wingSpread, -40, 10, 30);
+        } else {
+          ctx.fillStyle = isHit ? '#ffffff' : e.color;
+          ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
+        }
+
+        // Enemy health pip bar
+        if (!e.isBoss && e.hp < e.maxHp) {
+          const barW = Math.max(24, e.radius * 2);
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(-barW / 2, -e.radius - 8, barW, 4);
+          ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
+          ctx.fillRect(-barW / 2, -e.radius - 8, Math.max(1, barW * (e.hp / e.maxHp)), 4);
+        }
+
+        ctx.restore();
+      },
+
+      drawObstacle(ctx, obs, theme) {
+        if (obs.type === 'crate') {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+          this.px(ctx, obs.x + 2, obs.y + 2, 4, 4, '#0284c7');
+          this.px(ctx, obs.x + obs.w - 6, obs.y + 2, 4, 4, '#0284c7');
+          this.px(ctx, obs.x + 2, obs.y + obs.h - 6, 4, 4, '#0284c7');
+          this.px(ctx, obs.x + obs.w - 6, obs.y + obs.h - 6, 4, 4, '#0284c7');
+        } else if (obs.type === 'pillar') {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+          this.px(ctx, obs.x + 6, obs.y + 6, obs.w - 12, obs.h - 12, '#1e293b');
+        } else if (obs.type === 'explosive_barrel') {
+          ctx.fillStyle = '#b91c1c';
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.fillStyle = '#facc15';
+          ctx.fillRect(obs.x, obs.y + obs.h * 0.35, obs.w, obs.h * 0.3);
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+          this.px(ctx, obs.x + obs.w / 2 - 2, obs.y + obs.h / 2 - 2, 4, 4, '#000000');
+        } else if (obs.type === 'pedestal') {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.strokeStyle = '#00f0ff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+          if (!obs.claimed) {
+            const floatOffset = Math.sin(Date.now() * 0.005) * 4;
+            ctx.fillStyle = '#00f0ff';
+            ctx.fillRect(obs.x + obs.w / 2 - 8, obs.y + obs.h / 2 - 8 + floatOffset, 16, 16);
+            this.px(ctx, obs.x + obs.w / 2 - 4, obs.y + obs.h / 2 - 4 + floatOffset, 8, 8, '#ffffff');
+          }
+        } else if (obs.type === 'mutagen_pod') {
+          ctx.fillStyle = '#064e3b';
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.strokeStyle = '#39ff14';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+          if (!obs.claimed) {
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(obs.x + 8, obs.y + 8, obs.w - 16, obs.h - 16);
+            this.px(ctx, obs.x + obs.w / 2 - 4, obs.y + obs.h / 2 - 4, 8, 8, '#ffffff');
+          }
+        } else if (obs.type === 'terminal' || obs.type.startsWith('shop_')) {
+          ctx.fillStyle = '#09111c';
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.strokeStyle = '#00f0ff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.fillStyle = '#00f0ff';
+          ctx.font = 'bold 10px monospace';
+          ctx.textAlign = 'center';
+          const label = obs.type === 'shop_heal' ? 'NANITE 15$' : (obs.type === 'shop_o2' ? 'O2 10$' : (obs.bought ? 'VENDIDO' : 'LOJA 25$'));
+          ctx.fillText(label, obs.x + obs.w / 2, obs.y + obs.h / 2 + 3);
+        }
+      },
+
+      drawPickup(ctx, p) {
+        ctx.save();
+        ctx.translate(Math.round(p.x), Math.round(p.y));
+        const bob = Math.sin(Date.now() * 0.008) * 3;
+
+        if (p.type === 'scrap') {
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(-5, -5 + bob, 10, 10);
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(-2, -2 + bob, 4, 4);
+        } else if (p.type === 'hp') {
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(-7, -7 + bob, 14, 14);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(-2, -5 + bob, 4, 10);
+          ctx.fillRect(-5, -2 + bob, 10, 4);
+        } else if (p.type === 'shield') {
+          ctx.fillStyle = '#00f0ff';
+          ctx.fillRect(-6, -8 + bob, 12, 16);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(-3, -5 + bob, 6, 10);
+        } else if (p.type === 'o2') {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(-5, -8 + bob, 10, 16);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(-2, -6 + bob, 4, 6);
+        }
+        ctx.restore();
+      }
+    };
+
+    // ==========================================
+    // 5. BASE ENTITY & DERIVED CLASSES
+    // ==========================================
+    class Entity {
+      constructor(x, y, radius, faction) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.radius = radius;
+        this.faction = faction;
+        this.maxHp = 10;
+        this.hp = 10;
+        this.dead = false;
+        this.invulnTimer = 0;
+        this.flashTimer = 0;
+        this.color = '#ffffff';
+        this.contactDamage = 1;
+      }
+
+      takeDamage(amount, source) {
+        if (this.invulnTimer > 0 || this.dead) return false;
+        this.hp -= amount;
+        this.flashTimer = 0.15;
+
+        if (this.faction === CONSTANTS.FACTIONS.ROBOT) {
+          soundEngine.playHit('robot');
+        } else if (this.faction === CONSTANTS.FACTIONS.ALIEN || this.faction === CONSTANTS.FACTIONS.VOID) {
+          soundEngine.playHit('alien');
+        }
+
+        if (this.hp <= 0) {
+          this.hp = 0;
+          this.dead = true;
+          this.onDeath(source);
+        }
+        return true;
+      }
+
+      onDeath(source) {}
+
+      update(dt, room) {
+        // Safe position NaN prevention
+        if (isNaN(this.x) || isNaN(this.y)) {
+          this.x = CONSTANTS.ROOM_WIDTH / 2;
+          this.y = CONSTANTS.ROOM_HEIGHT / 2;
+          this.vx = 0;
+          this.vy = 0;
+        }
+
+        if (this.invulnTimer > 0) this.invulnTimer -= dt;
+        if (this.flashTimer > 0) this.flashTimer -= dt;
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+
+        // Friction dampening
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+
+        // Wall collisions
+        const T = CONSTANTS.WALL_THICKNESS;
+        const W = CONSTANTS.ROOM_WIDTH;
+        const H = CONSTANTS.ROOM_HEIGHT;
+
+        if (this.x - this.radius < T) {
+          this.x = T + this.radius;
+          this.vx = 0;
+        } else if (this.x + this.radius > W - T) {
+          this.x = W - T - this.radius;
+          this.vx = 0;
+        }
+
+        if (this.y - this.radius < T) {
+          this.y = T + this.radius;
+          this.vy = 0;
+        } else if (this.y + this.radius > H - T) {
+          this.y = H - T - this.radius;
+          this.vy = 0;
+        }
+
+        // Obstacles collision
+        if (room && room.obstacles) {
+          for (let obs of room.obstacles) {
+            this.resolveObstacle(obs);
+          }
+        }
+      }
+
+      resolveObstacle(obs) {
+        const closestX = Math.max(obs.x, Math.min(this.x, obs.x + obs.w));
+        const closestY = Math.max(obs.y, Math.min(this.y, obs.y + obs.h));
+        const distX = this.x - closestX;
+        const distY = this.y - closestY;
+        const distSq = distX * distX + distY * distY;
+
+        if (distSq < this.radius * this.radius && distSq > 0.001) {
+          const dist = Math.sqrt(distSq);
+          const overlap = this.radius - dist;
+          this.x += (distX / dist) * overlap;
+          this.y += (distY / dist) * overlap;
+        }
+      }
+    }
+
+    // --- PLAYER CLASS ---
+    class Player extends Entity {
+      constructor(x, y, game = null) {
+        super(x, y, 16, CONSTANTS.FACTIONS.PLAYER);
+        this.game = game || window.gameInstance;
+        this.maxHp = 6;
+        this.hp = 6;
+        this.maxShield = 2;
+        this.shield = 2;
+        this.shieldRegenTimer = 0;
+
+        this.baseSpeed = 220;
+        this.speedMult = 1.0;
+        this.angle = 0;
+        this.walkAnimTimer = 0;
+
+        // Oxygen
+        this.maxO2 = 100;
+        this.o2 = 100;
+        this.o2DepletionRate = 3.5;
+        this.o2DamageTimer = 0;
+
+        // Inventory
+        this.scrap = 20;
+        this.modulesInventory = [];
+
+        // Equipped Loadout
+        this.modules = {
+          weapon: CONSTANTS.MODULES.find(m => m.id === 'weapon_blaster'),
+          chassis: CONSTANTS.MODULES.find(m => m.id === 'chassis_nano'),
+          engine: CONSTANTS.MODULES.find(m => m.id === 'engine_booster'),
+          core: CONSTANTS.MODULES.find(m => m.id === 'core_overclock')
+        };
+
+        // Alien Mutations
+        this.mutations = {
+          causticBile: false,
+          symbioticTentacle: false,
+          predatorAdrenals: false,
+          contagiousSpores: false,
+          chitinShell: false,
+          vampiricTendrils: false
+        };
+        this.tentacleTimer = 0;
+        this.spasmTimer = 0;
+        this.combatTimer = 0;
+
+        // Combat Timers
+        this.shootTimer = 0;
+        this.dashTimer = 0;
+        this.isDashing = false;
+        this.dashDuration = 0.2;
+        this.dashTimeRemaining = 0;
+        this.dashDir = { x: 0, y: 0 };
+
+        // Hacking EMP
+        this.hackCooldown = 5.0;
+        this.hackTimer = 0;
+        this.hackRange = 220;
+        this.hackCooldownBonus = 0;
+
+        // Companion Drone
+        this.droneAngle = 0;
+        this.droneShootTimer = 0;
+
+        // Run Statistics
+        this.stats = {
+          roomsCleared: 0,
+          aliensKilled: 0,
+          robotsKilled: 0,
+          robotsHacked: 0,
+          mutationsCount: 0,
+          damageDealt: 0,
+          startTime: Date.now()
+        };
+      }
+
+      equipModule(module) {
+        if (!module || !module.slot) return;
+        const current = this.modules[module.slot];
+        if (current && current.bonusShield) {
+          this.maxShield -= current.bonusShield;
+          this.shield = Math.min(this.shield, this.maxShield);
+        }
+        this.modules[module.slot] = module;
+        if (module.bonusShield) {
+          this.maxShield += module.bonusShield;
+          this.shield = Math.min(this.shield + module.bonusShield, this.maxShield);
+        }
+        soundEngine.playPickup('module');
+      }
+
+      takeDamage(amount, source) {
+        if (this.invulnTimer > 0 || this.isDashing || this.dead) return false;
+
+        // Chitin Shell 25% deflection
+        if (this.mutations.chitinShell && Math.random() < 0.25) {
+          const game = this.game || window.gameInstance;
+          if (game) {
+            game.addParticle(new FloatingText(this.x, this.y - 20, "DEFLETIDO!", "#39ff14"));
+          }
+          return false;
+        }
+
+        this.shieldRegenTimer = 0;
+
+        if (this.shield > 0) {
+          this.shield -= amount;
+          if (this.shield < 0) {
+            this.hp += this.shield;
+            this.shield = 0;
+          }
+
+          if (this.shield === 0 && this.modules.chassis?.empOnBreak) {
+            this.triggerEmpShockwave();
+          }
+        } else {
+          this.hp -= amount;
+        }
+
+        // Controlled i-frames and feedback
+        this.invulnTimer = 0.85;
+        this.flashTimer = 0.2;
+        soundEngine.playPlayerDamage();
+
+        const game = this.game || window.gameInstance;
+        if (game) game.screenShake(7, 0.25);
+
+        if (this.hp <= 0) {
+          this.hp = 0;
+          this.dead = true;
+          this.onDeath(source);
+        }
+        return true;
+      }
+
+      triggerEmpShockwave() {
+        soundEngine.playExplosion();
+        const game = this.game || window.gameInstance;
+        if (game) {
+          game.addParticle(new Shockwave(this.x, this.y, 160, '#00f0ff'));
+          const room = game.dungeon.currentRoom;
+          if (room && room.enemies) {
+            room.enemies.forEach(e => {
+              if (Math.hypot(e.x - this.x, e.y - this.y) < 160) {
+                e.takeDamage(20, this);
+                const a = Math.atan2(e.y - this.y, e.x - this.x);
+                e.vx = Math.cos(a) * 350;
+                e.vy = Math.sin(a) * 350;
+              }
+            });
+          }
+        }
+      }
+
+      onDeath() {
+        if (this.game) {
+          this.game.onPlayerDeath();
+        } else if (window.gameInstance) {
+          window.gameInstance.onPlayerDeath();
+        }
+      }
+
+      update(dt, room, input) {
+        if (this.dead) return;
+
+        let currentSpeed = (this.baseSpeed + (this.modules.engine?.speedBonus || 0)) * this.speedMult;
+
+        let fireRateMult = 1.0;
+        let damageMult = 1.0;
+        if (this.mutations.predatorAdrenals && this.hp <= this.maxHp * 0.5) {
+          fireRateMult = 1.6;
+          damageMult = 1.35;
+        }
+
+        if (this.invulnTimer > 0) this.invulnTimer -= dt;
+        if (this.flashTimer > 0) this.flashTimer -= dt;
+        if (this.shootTimer > 0) this.shootTimer -= dt;
+        if (this.dashTimer > 0) this.dashTimer -= dt;
+        if (this.hackTimer > 0) this.hackTimer -= dt;
+
+        // Nanite Shield Regen
+        if (this.modules.chassis?.shieldRegenDelay) {
+          this.shieldRegenTimer += dt;
+          if (this.shieldRegenTimer >= this.modules.chassis.shieldRegenDelay) {
+            if (this.shield < this.maxShield) {
+              this.shield++;
+              const game = this.game || window.gameInstance;
+              if (game) game.addParticle(new FloatingText(this.x, this.y - 20, "+ESCUDO", "#00f0ff"));
+            }
+            this.shieldRegenTimer = 0;
+          }
+        }
+
+        // Oxygen in vacuum zones
+        if (room && room.vacuumBreach) {
+          const efficiency = this.modules.chassis?.o2Efficiency || 1.0;
+          this.o2 -= this.o2DepletionRate * efficiency * dt;
+          if (this.o2 <= 0) {
+            this.o2 = 0;
+            this.o2DamageTimer += dt;
+            if (this.o2DamageTimer >= 1.5) {
+              this.o2DamageTimer = 0;
+              this.takeDamage(1, null);
+              const game = this.game || window.gameInstance;
+              if (game) game.addParticle(new FloatingText(this.x, this.y - 20, "SEM OXIGÊNIO!", "#ff2a5f"));
+            }
+          }
+        } else {
+          if (this.o2 < this.maxO2) {
+            this.o2 = Math.min(this.maxO2, this.o2 + 25 * dt);
+          }
+        }
+
+        // Spores twitch spasm
+        if (this.mutations.contagiousSpores) {
+          this.spasmTimer += dt;
+          if (this.spasmTimer > 14) {
+            this.spasmTimer = 0;
+            const a = Math.random() * Math.PI * 2;
+            this.vx += Math.cos(a) * 300;
+            this.vy += Math.sin(a) * 300;
+          }
+        }
+
+        // Tentacle auto-strike
+        if (this.mutations.symbioticTentacle && room && room.enemies) {
+          this.tentacleTimer += dt;
+          if (this.tentacleTimer >= 2.5) {
+            this.tentacleTimer = 0;
+            let closest = null;
+            let minDist = 140;
+            for (let e of room.enemies) {
+              if (e.dead || e.faction === this.faction) continue;
+              const d = Math.hypot(e.x - this.x, e.y - this.y);
+              if (d < minDist) {
+                minDist = d;
+                closest = e;
+              }
+            }
+            if (closest) {
+              closest.takeDamage(30, this);
+              const game = this.game || window.gameInstance;
+              if (game) {
+                game.addParticle(new TentacleWhip(this.x, this.y, closest.x, closest.y));
+                game.addParticle(new FloatingText(closest.x, closest.y - 15, "CHICOTADA! 30", "#39ff14"));
+              }
+            }
+          }
+        }
+
+        // Companion Drone
+        if (this.modules.core?.hasCompanionDrone) {
+          this.droneAngle += dt * 2.5;
+          this.droneShootTimer += dt;
+          if (this.droneShootTimer >= 0.8 && room && room.enemies) {
+            let closest = null;
+            let minDist = 300;
+            for (let e of room.enemies) {
+              if (e.dead || e.faction === this.faction) continue;
+              const d = Math.hypot(e.x - this.x, e.y - this.y);
+              if (d < minDist) {
+                minDist = d;
+                closest = e;
+              }
+            }
+            if (closest) {
+              this.droneShootTimer = 0;
+              const dx = this.x + Math.cos(this.droneAngle) * 35;
+              const dy = this.y + Math.sin(this.droneAngle) * 35;
+              const a = Math.atan2(closest.y - dy, closest.x - dx);
+              room.projectiles.push(new Projectile(
+                dx, dy, Math.cos(a) * 550, Math.sin(a) * 550,
+                CONSTANTS.FACTIONS.PLAYER, 9, 'plasma', '#00f0ff'
+              ));
+              soundEngine.playShoot('plasma');
+            }
+          }
+        }
+
+        // --- DASH HANDLING ---
+        if (this.isDashing) {
+          this.dashTimeRemaining -= dt;
+          this.vx = this.dashDir.x * 550;
+          this.vy = this.dashDir.y * 550;
+
+          if (this.modules.engine?.fireTrail && window.gameInstance) {
+            window.gameInstance.addParticle(new FireParticle(this.x, this.y));
+          }
+
+          if (this.dashTimeRemaining <= 0) {
+            this.isDashing = false;
+          }
+        } else {
+          // Movement Input (WASD / Arrows / Joystick)
+          let moveX = 0;
+          let moveY = 0;
+
+          if (input.keys['KeyW'] || input.keys['ArrowUp']) moveY -= 1;
+          if (input.keys['KeyS'] || input.keys['ArrowDown']) moveY += 1;
+          if (input.keys['KeyA'] || input.keys['ArrowLeft']) moveX -= 1;
+          if (input.keys['KeyD'] || input.keys['ArrowRight']) moveX += 1;
+
+          if (input.joystick.active) {
+            moveX = input.joystick.dx;
+            moveY = input.joystick.dy;
+          } else if (moveX !== 0 && moveY !== 0) {
+            moveX *= 0.7071;
+            moveY *= 0.7071;
+          }
+
+          this.vx = moveX * currentSpeed;
+          this.vy = moveY * currentSpeed;
+
+          if (moveX !== 0 || moveY !== 0) {
+            this.walkAnimTimer += dt;
+          }
+
+          // Trigger Dash
+          const dashCd = this.modules.engine?.dashCooldown || 1.5;
+          if ((input.keys['ShiftLeft'] || input.keys['ShiftRight'] || input.keys['Space']) && this.dashTimer <= 0) {
+            if (moveX !== 0 || moveY !== 0) {
+              this.isDashing = true;
+              this.dashTimeRemaining = this.dashDuration;
+              this.dashTimer = dashCd;
+              this.dashDir = { x: moveX, y: moveY };
+              soundEngine.playDash();
+
+              if (this.modules.engine?.dashStun && window.gameInstance) {
+                window.gameInstance.addParticle(new Shockwave(this.x, this.y, 90, '#ffffff'));
+                if (room && room.enemies) {
+                  room.enemies.forEach(e => {
+                    if (Math.hypot(e.x - this.x, e.y - this.y) < 90) e.stunTimer = 1.2;
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        this.angle = Math.atan2(input.mouseY - this.y, input.mouseX - this.x);
+
+        // Shooting
+        const weapon = this.modules.weapon || CONSTANTS.MODULES[0];
+        const effectiveFireRate = (weapon.fireRate || 4) * fireRateMult;
+        const fireInterval = 1 / effectiveFireRate;
+
+        if ((input.mouseDown || input.touchAim.firing) && this.shootTimer <= 0 && !this.isDashing) {
+          this.shootTimer = fireInterval;
+          this.shootWeapon(weapon, damageMult, room);
+        }
+
+        // Hacking EMP
+        const hackCdMult = this.modules.core?.hackCooldownMult || 1.0;
+        const totalHackCd = (this.hackCooldown + this.hackCooldownBonus) * hackCdMult;
+
+        if ((input.justPressed['KeyE'] || input.rightMouseDown) && this.hackTimer <= 0) {
+          this.triggerHackingTool(room, totalHackCd);
+        }
+
+        super.update(dt, room);
+
+        // Pickups Attraction & Collection
+        if (room && room.pickups) {
+          const magnetMult = this.modules.core?.pickupRadiusMult || 1.0;
+          const pickupRange = 35 * magnetMult;
+
+          for (let i = room.pickups.length - 1; i >= 0; i--) {
+            const p = room.pickups[i];
+            const dist = Math.hypot(p.x - this.x, p.y - this.y);
+
+            if (dist < pickupRange * 3) {
+              const a = Math.atan2(this.y - p.y, this.x - p.x);
+              p.x += Math.cos(a) * 240 * dt;
+              p.y += Math.sin(a) * 240 * dt;
+            }
+
+            if (dist < this.radius + p.radius) {
+              this.collectPickup(p);
+              room.pickups.splice(i, 1);
+            }
+          }
+        }
+      }
+
+      shootWeapon(weapon, damageMult, room) {
+        const baseDamage = (weapon.damage || 12) * damageMult;
+        const speed = weapon.speed || 500;
+        const count = weapon.pellets || 1;
+        const spread = weapon.spread || 0.05;
+
+        for (let i = 0; i < count; i++) {
+          const offset = (Math.random() - 0.5) * spread;
+          const shootAngle = this.angle + offset;
+          const projVx = Math.cos(shootAngle) * speed;
+          const projVy = Math.sin(shootAngle) * speed;
+
+          const proj = new Projectile(
+            this.x + Math.cos(this.angle) * 20,
+            this.y + Math.sin(this.angle) * 20,
+            projVx, projVy,
+            CONSTANTS.FACTIONS.PLAYER,
+            baseDamage,
+            weapon.bulletType || 'plasma',
+            weapon.bulletType === 'rail' ? '#bf55ec' : (weapon.bulletType === 'scatter' ? '#ffaa00' : '#00f0ff')
+          );
+
+          if (weapon.pierce) proj.pierce = weapon.pierce;
+          if (weapon.homing) proj.homing = true;
+          if (weapon.chainTargets) proj.chainTargets = weapon.chainTargets;
+          if (this.mutations.causticBile) proj.leavesAcid = true;
+
+          room.projectiles.push(proj);
+        }
+
+        soundEngine.playShoot(weapon.bulletType);
+      }
+
+      triggerHackingTool(room, cooldown) {
+        this.hackTimer = cooldown;
+        soundEngine.playHack();
+
+        let hackedTarget = null;
+        let minDist = this.hackRange;
+
+        if (room && room.enemies) {
+          for (let enemy of room.enemies) {
+            if (enemy.dead || enemy.isHacked || enemy.faction !== CONSTANTS.FACTIONS.ROBOT) continue;
+            const d = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+            if (d < minDist) {
+              minDist = d;
+              hackedTarget = enemy;
+            }
+          }
+        }
+
+        if (hackedTarget) {
+          const duration = 8.0 * (this.modules.core?.hackDurationMult || 1.0);
+          hackedTarget.applyHack(duration);
+          this.stats.robotsHacked++;
+          const game = this.game || window.gameInstance;
+          if (game) {
+            game.addParticle(new Shockwave(hackedTarget.x, hackedTarget.y, 60, '#00f0ff'));
+            game.addParticle(new FloatingText(hackedTarget.x, hackedTarget.y - 25, "HACKEADO! ALIADO", "#00f0ff"));
+          }
+        } else {
+          const game = this.game || window.gameInstance;
+          if (game) {
+            game.addParticle(new Shockwave(this.x, this.y, this.hackRange * 0.6, '#00f0ff'));
+            game.addParticle(new FloatingText(this.x, this.y - 25, "PULSO EMP", "#00f0ff"));
+          }
+        }
+      }
+
+      collectPickup(p) {
+        const game = this.game || window.gameInstance;
+        if (p.type === 'scrap') {
+          this.scrap += p.amount;
+          soundEngine.playPickup('scrap');
+          if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${p.amount} SUCATA`, '#ffaa00'));
+        } else if (p.type === 'hp') {
+          const heal = this.mutations.vampiricTendrils ? Math.max(1, Math.floor(p.amount * 0.5)) : p.amount;
+          this.hp = Math.min(this.maxHp, this.hp + heal);
+          soundEngine.playPickup('scrap');
+          if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${heal} HP`, '#39ff14'));
+        } else if (p.type === 'shield') {
+          this.shield = Math.min(this.maxShield, this.shield + p.amount);
+          soundEngine.playPickup('scrap');
+          if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${p.amount} ESCUDO`, '#00f0ff'));
+        } else if (p.type === 'o2') {
+          this.o2 = Math.min(this.maxO2, this.o2 + p.amount);
+          soundEngine.playPickup('scrap');
+          if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${p.amount}% O2`, '#38bdf8'));
+        } else if (p.type === 'module_item') {
+          this.modulesInventory.push(p.module);
+          this.equipModule(p.module);
+          if (game) game.addParticle(new FloatingText(this.x, this.y - 30, `MÓDULO: ${p.module.name}`, '#00f0ff'));
+        }
+      }
+    }
+
+    // --- PROJECTILE CLASS ---
+    class Projectile {
+      constructor(x, y, vx, vy, faction, damage, type = 'plasma', color = '#00f0ff') {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.faction = faction;
+        this.damage = damage;
+        this.type = type;
+        this.color = color;
+        this.radius = type === 'scatter' ? 4 : (type === 'rail' ? 6 : (type === 'missile' ? 7 : 5));
+        this.dead = false;
+        this.lifeTime = 2.2;
+        this.pierce = 1;
+        this.homing = false;
+        this.chainTargets = 0;
+        this.leavesAcid = false;
+      }
+
+      update(dt, room) {
+        this.lifeTime -= dt;
+        if (this.lifeTime <= 0) {
+          this.dead = true;
+          return;
+        }
+
+        if (this.homing && room && room.enemies) {
+          let target = null;
+          let minDist = 260;
+          for (let enemy of room.enemies) {
+            if (enemy.dead || enemy.faction === this.faction) continue;
+            const d = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+            if (d < minDist) {
+              minDist = d;
+              target = enemy;
+            }
+          }
+          if (target) {
+            const desired = Math.atan2(target.y - this.y, target.x - this.x);
+            const current = Math.atan2(this.vy, this.vx);
+            let diff = desired - current;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            const newAngle = current + diff * 6.5 * dt;
+            const spd = Math.hypot(this.vx, this.vy);
+            this.vx = Math.cos(newAngle) * spd;
+            this.vy = Math.sin(newAngle) * spd;
+          }
+        }
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+
+        const T = CONSTANTS.WALL_THICKNESS;
+        if (this.x < T || this.x > CONSTANTS.ROOM_WIDTH - T || this.y < T || this.y > CONSTANTS.ROOM_HEIGHT - T) {
+          this.onHitWall(room);
+          return;
+        }
+
+        if (room && room.obstacles) {
+          for (let obs of room.obstacles) {
+            if (this.x >= obs.x && this.x <= obs.x + obs.w && this.y >= obs.y && this.y <= obs.y + obs.h) {
+              if (obs.type === 'explosive_barrel') {
+                obs.hp = (obs.hp || 20) - this.damage;
+                if (obs.hp <= 0 && !obs.exploded) {
+                  obs.exploded = true;
+                  this.detonateBarrel(obs, room);
+                }
+              }
+              this.onHitWall(room);
+              return;
+            }
+          }
+        }
+
+        // Check Entity Collisions
+        if (room) {
+          if (this.faction !== CONSTANTS.FACTIONS.PLAYER && window.gameInstance?.player) {
+            const player = window.gameInstance.player;
+            if (Math.hypot(player.x - this.x, player.y - this.y) < player.radius + this.radius) {
+              player.takeDamage(this.damage, this);
+              this.dead = true;
+              return;
+            }
+          }
+
+          if (room.enemies) {
+            for (let enemy of room.enemies) {
+              if (enemy.dead || enemy.faction === this.faction) continue;
+              if (Math.hypot(enemy.x - this.x, enemy.y - this.y) < enemy.radius + this.radius) {
+                enemy.takeDamage(this.damage, this);
+                if (window.gameInstance?.player) {
+                  window.gameInstance.player.stats.damageDealt += this.damage;
+                }
+
+                if (this.leavesAcid && window.gameInstance) {
+                  room.hazards.push({
+                    x: this.x - 18,
+                    y: this.y - 18,
+                    w: 36,
+                    h: 36,
+                    type: 'acid_pool',
+                    duration: 4.5
+                  });
+                }
+
+                this.pierce--;
+                if (this.pierce <= 0) {
+                  this.dead = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      onHitWall(room) {
+        this.dead = true;
+        if (this.leavesAcid && window.gameInstance && room) {
+          room.hazards.push({
+            x: this.x - 15,
+            y: this.y - 15,
+            w: 30,
+            h: 30,
+            type: 'acid_pool',
+            duration: 4.0
+          });
+        }
+      }
+
+      detonateBarrel(barrel, room) {
+        soundEngine.playExplosion();
+        if (window.gameInstance) {
+          window.gameInstance.screenShake(10, 0.3);
+          window.gameInstance.addParticle(new Shockwave(barrel.x + barrel.w / 2, barrel.y + barrel.h / 2, 120, '#ff4400'));
+          const bx = barrel.x + barrel.w / 2;
+          const by = barrel.y + barrel.h / 2;
+          const radius = 120;
+
+          if (room.enemies) {
+            room.enemies.forEach(e => {
+              if (Math.hypot(e.x - bx, e.y - by) < radius) {
+                e.takeDamage(45, null);
+              }
+            });
+          }
+          const player = window.gameInstance.player;
+          if (player && Math.hypot(player.x - bx, player.y - by) < radius) {
+            player.takeDamage(2, null);
+          }
+        }
+      }
+    }
+
+    // --- ENEMY BASE CLASS ---
+    class Enemy extends Entity {
+      constructor(x, y, radius, faction) {
+        super(x, y, radius, faction);
+        this.isHacked = false;
+        this.hackDuration = 0;
+        this.target = null;
+        this.attackTimer = 0;
+        this.attackInterval = 1.5;
+        this.stunTimer = 0;
+        this.contactDamage = 1;
+      }
+
+      applyHack(duration) {
+        this.isHacked = true;
+        this.hackDuration = duration;
+        this.faction = CONSTANTS.FACTIONS.PLAYER;
+      }
+
+      findTarget(room) {
+        let closest = null;
+        let minDist = 9999;
+
+        if (this.faction !== CONSTANTS.FACTIONS.PLAYER && window.gameInstance?.player) {
+          const p = window.gameInstance.player;
+          if (!p.dead) {
+            const d = Math.hypot(p.x - this.x, p.y - this.y);
+            minDist = d;
+            closest = p;
+          }
+        }
+
+        if (room && room.enemies) {
+          for (let other of room.enemies) {
+            if (other === this || other.dead || other.faction === this.faction) continue;
+            const d = Math.hypot(other.x - this.x, other.y - this.y);
+            if (d < minDist) {
+              minDist = d;
+              closest = other;
+            }
+          }
+        }
+
+        return closest;
+      }
+
+      update(dt, room) {
+        if (this.dead) return;
+
+        if (this.stunTimer > 0) {
+          this.stunTimer -= dt;
+          this.vx = 0;
+          this.vy = 0;
+          super.update(dt, room);
+          return;
+        }
+
+        if (this.isHacked) {
+          this.hackDuration -= dt;
+          if (this.hackDuration <= 0) {
+            this.isHacked = false;
+            this.faction = CONSTANTS.FACTIONS.ROBOT;
+            if (window.gameInstance) {
+              window.gameInstance.addParticle(new FloatingText(this.x, this.y - 20, "HACK EXPIRADO", "#ffaa00"));
+            }
+          }
+        }
+
+        this.target = this.findTarget(room);
+        this.attackTimer += dt;
+        this.executeAI(dt, room);
+        super.update(dt, room);
+      }
+
+      executeAI(dt, room) {}
+
+      onDeath(source) {
+        const game = window.gameInstance;
+        if (game) {
+          const room = game.dungeon?.currentRoom;
+          const p = game.player;
+          if (p) {
+            if (this.faction === CONSTANTS.FACTIONS.ALIEN) p.stats.aliensKilled++;
+            if (this.faction === CONSTANTS.FACTIONS.ROBOT) p.stats.robotsKilled++;
+
+            if (p.mutations.vampiricTendrils) {
+              p.vampireKillCounter++;
+              if (p.vampireKillCounter >= p.vampireKillsNeeded) {
+                p.vampireKillCounter = 0;
+                p.hp = Math.min(p.maxHp, p.hp + 1);
+                game.addParticle(new FloatingText(p.x, p.y - 20, "+1 HP (VAMPIRO)", "#39ff14"));
+              }
+            }
+
+            if (p.mutations.contagiousSpores) {
+              game.addParticle(new Shockwave(this.x, this.y, 80, '#39ff14'));
+              if (room && room.enemies) {
+                room.enemies.forEach(e => {
+                  if (e !== this && !e.dead && Math.hypot(e.x - this.x, e.y - this.y) < 80) {
+                    e.takeDamage(12, p);
+                  }
+                });
+              }
+            }
+          }
+
+          if (room) {
+            this.dropLoot(room);
+          }
+        }
+      }
+
+      dropLoot(room) {
+        if (!room) return;
+        const roll = Math.random();
+
+        room.pickups.push({
+          x: this.x + (Math.random() - 0.5) * 16,
+          y: this.y + (Math.random() - 0.5) * 16,
+          radius: 8,
+          type: 'scrap',
+          amount: 1 + Math.floor(Math.random() * 3)
+        });
+
+        if (roll < 0.24) {
+          room.pickups.push({
+            x: this.x,
+            y: this.y,
+            radius: 10,
+            type: Math.random() < 0.6 ? 'hp' : 'shield',
+            amount: 1
+          });
+        }
+
+        if (room.vacuumBreach || room.sector?.hasVacuum) {
+          if (Math.random() < 0.45) {
+            room.pickups.push({
+              x: this.x,
+              y: this.y,
+              radius: 10,
+              type: 'o2',
+              amount: 25
+            });
+          }
+        }
+      }
+    }
+
+    // --- ENEMY SUB-CLASSES ---
+    class BioSwarmer extends Enemy {
+      constructor(x, y) {
+        super(x, y, 14, CONSTANTS.FACTIONS.ALIEN);
+        this.maxHp = 22;
+        this.hp = 22;
+        this.speed = 150;
+        this.contactDamage = 1;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) {
+          this.vx *= 0.9;
+          this.vy *= 0.9;
+          return;
+        }
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+      }
+    }
+
+    class BioSpitter extends Enemy {
+      constructor(x, y) {
+        super(x, y, 18, CONSTANTS.FACTIONS.ALIEN);
+        this.maxHp = 35;
+        this.hp = 35;
+        this.speed = 90;
+        this.attackInterval = 2.0;
+        this.contactDamage = 1;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        const dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+
+        if (dist < 180) {
+          this.vx = -Math.cos(a) * this.speed;
+          this.vy = -Math.sin(a) * this.speed;
+        } else if (dist > 300) {
+          this.vx = Math.cos(a) * this.speed;
+          this.vy = Math.sin(a) * this.speed;
+        } else {
+          this.vx *= 0.9;
+          this.vy *= 0.9;
+        }
+
+        if (this.attackTimer >= this.attackInterval) {
+          this.attackTimer = 0;
+          room.projectiles.push(new Projectile(
+            this.x, this.y, Math.cos(a) * 340, Math.sin(a) * 340,
+            this.faction, 1, 'plasma', '#39ff14'
+          ));
+          soundEngine.playAlienSpit();
+        }
+      }
+    }
+
+    class BioBrood extends Enemy {
+      constructor(x, y) {
+        super(x, y, 24, CONSTANTS.FACTIONS.ALIEN);
+        this.maxHp = 65;
+        this.hp = 65;
+        this.speed = 60;
+        this.attackInterval = 3.6;
+        this.contactDamage = 1;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+
+        // Spawn larvae safely into room.pendingEnemies
+        if (this.attackTimer >= this.attackInterval && (room.enemies.length + (room.pendingEnemies?.length || 0)) < 8) {
+          this.attackTimer = 0;
+          const larva = new BioSwarmer(this.x + (Math.random() - 0.5) * 30, this.y + (Math.random() - 0.5) * 30);
+          larva.hp = 12;
+          larva.maxHp = 12;
+          larva.radius = 10;
+          if (!room.pendingEnemies) room.pendingEnemies = [];
+          room.pendingEnemies.push(larva);
+          soundEngine.playAlienSpit();
+        }
+      }
+    }
+
+    class RoboDrone extends Enemy {
+      constructor(x, y) {
+        super(x, y, 16, CONSTANTS.FACTIONS.ROBOT);
+        this.maxHp = 30;
+        this.hp = 30;
+        this.speed = 120;
+        this.attackInterval = 1.4;
+        this.strafeAngle = Math.random() * Math.PI * 2;
+        this.contactDamage = 1;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.strafeAngle += dt * 1.5;
+        const tx = this.target.x + Math.cos(this.strafeAngle) * 160;
+        const ty = this.target.y + Math.sin(this.strafeAngle) * 160;
+
+        const moveAngle = Math.atan2(ty - this.y, tx - this.x);
+        this.vx = Math.cos(moveAngle) * this.speed;
+        this.vy = Math.sin(moveAngle) * this.speed;
+
+        if (this.attackTimer >= this.attackInterval) {
+          this.attackTimer = 0;
+          room.projectiles.push(new Projectile(
+            this.x, this.y, Math.cos(a) * 450, Math.sin(a) * 450,
+            this.faction, 1, 'plasma', this.isHacked ? '#00f0ff' : '#ff2a5f'
+          ));
+          soundEngine.playShoot('plasma');
+        }
+      }
+    }
+
+    class RoboSentry extends Enemy {
+      constructor(x, y) {
+        super(x, y, 20, CONSTANTS.FACTIONS.ROBOT);
+        this.maxHp = 50;
+        this.hp = 50;
+        this.speed = 0;
+        this.attackInterval = 2.2;
+        this.turretAngle = 0;
+        this.contactDamage = 1;
+      }
+
+      executeAI(dt, room) {
+        this.vx = 0;
+        this.vy = 0;
+        if (!this.target) return;
+        this.turretAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+
+        if (this.attackTimer >= this.attackInterval) {
+          this.attackTimer = 0;
+          const spreads = [-0.25, 0, 0.25];
+          spreads.forEach(s => {
+            const a = this.turretAngle + s;
+            room.projectiles.push(new Projectile(
+              this.x, this.y, Math.cos(a) * 400, Math.sin(a) * 400,
+              this.faction, 1, 'plasma', this.isHacked ? '#00f0ff' : '#ff2a5f'
+            ));
+          });
+          soundEngine.playShoot('plasma');
+        }
+      }
+    }
+
+    class RoboRoller extends Enemy {
+      constructor(x, y) {
+        super(x, y, 15, CONSTANTS.FACTIONS.ROBOT);
+        this.maxHp = 25;
+        this.hp = 25;
+        this.speed = 180;
+        this.contactDamage = 2;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+
+        if (Math.hypot(this.target.x - this.x, this.target.y - this.y) < this.radius + this.target.radius + 6) {
+          this.dead = true;
+          soundEngine.playExplosion();
+          if (window.gameInstance) {
+            window.gameInstance.addParticle(new Shockwave(this.x, this.y, 90, '#ff4400'));
+            this.target.takeDamage(2, this);
+          }
+        }
+      }
+    }
+
+    class VoidPhantom extends Enemy {
+      constructor(x, y) {
+        super(x, y, 16, CONSTANTS.FACTIONS.VOID);
+        this.maxHp = 40;
+        this.hp = 40;
+        this.speed = 100;
+        this.attackInterval = 2.0;
+        this.teleportTimer = 0;
+        this.contactDamage = 1;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        this.teleportTimer += dt;
+        if (this.teleportTimer > 4.5) {
+          this.teleportTimer = 0;
+          const a = Math.random() * Math.PI * 2;
+          this.x = Math.max(80, Math.min(CONSTANTS.ROOM_WIDTH - 80, this.target.x + Math.cos(a) * 140));
+          this.y = Math.max(80, Math.min(CONSTANTS.ROOM_HEIGHT - 80, this.target.y + Math.sin(a) * 140));
+          if (window.gameInstance) {
+            window.gameInstance.addParticle(new Shockwave(this.x, this.y, 60, '#bf55ec'));
+          }
+        }
+
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+
+        if (this.attackTimer >= this.attackInterval) {
+          this.attackTimer = 0;
+          room.projectiles.push(new Projectile(
+            this.x, this.y, Math.cos(a) * 320, Math.sin(a) * 320,
+            this.faction, 1, 'plasma', '#bf55ec'
+          ));
+          soundEngine.playShoot('plasma');
+        }
+      }
+    }
+
+    // --- BOSSES ---
+    // Sector 1 Boss: Gorgon-X
+    class BossGorgon extends Enemy {
+      constructor(x, y) {
+        super(x, y, 42, CONSTANTS.FACTIONS.ALIEN);
+        this.isBoss = true;
+        this.bossName = "GORGON-X: NÚCLEO BIÓTICO PRIMUS";
+        this.maxHp = 380;
+        this.hp = 380;
+        this.speed = 70;
+        this.phaseTimer = 0;
+        this.attackPhase = 0;
+        this.contactDamage = 2;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        this.phaseTimer += dt;
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+
+        if (this.phaseTimer >= 2.8) {
+          this.phaseTimer = 0;
+          this.attackPhase = (this.attackPhase + 1) % 3;
+
+          if (this.attackPhase === 0) {
+            for (let i = 0; i < 10; i++) {
+              const ang = (i / 10) * Math.PI * 2;
+              room.projectiles.push(new Projectile(
+                this.x, this.y, Math.cos(ang) * 280, Math.sin(ang) * 280,
+                this.faction, 1, 'plasma', '#39ff14'
+              ));
+            }
+            soundEngine.playBossRoar();
+          } else if (this.attackPhase === 1) {
+            this.vx = Math.cos(a) * 380;
+            this.vy = Math.sin(a) * 380;
+          } else {
+            if (!room.pendingEnemies) room.pendingEnemies = [];
+            if (room.enemies.length + room.pendingEnemies.length < 6) {
+              room.pendingEnemies.push(new BioSwarmer(this.x + 40, this.y));
+              room.pendingEnemies.push(new BioSwarmer(this.x - 40, this.y));
+            }
+          }
+        }
+      }
+
+      onDeath(source) {
+        super.onDeath(source);
+        soundEngine.playBossRoar();
+        if (window.gameInstance) window.gameInstance.onBossDefeated();
+      }
+    }
+
+    // Sector 2 Boss: Titan-Omega
+    class BossTitan extends Enemy {
+      constructor(x, y) {
+        super(x, y, 45, CONSTANTS.FACTIONS.ROBOT);
+        this.isBoss = true;
+        this.bossName = "TITAN-OMEGA: GUARDIÃO MECÂNICO";
+        this.maxHp = 520;
+        this.hp = 520;
+        this.speed = 50;
+        this.phaseTimer = 0;
+        this.attackPhase = 0;
+        this.contactDamage = 2;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        this.phaseTimer += dt;
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+
+        if (this.phaseTimer >= 2.5) {
+          this.phaseTimer = 0;
+          this.attackPhase = (this.attackPhase + 1) % 3;
+
+          if (this.attackPhase === 0) {
+            for (let i = -1; i <= 1; i++) {
+              const m = new Projectile(
+                this.x, this.y, Math.cos(a + i * 0.4) * 220, Math.sin(a + i * 0.4) * 220,
+                this.faction, 1, 'missile', '#ff2a5f'
+              );
+              m.homing = true;
+              room.projectiles.push(m);
+            }
+            soundEngine.playShoot('missile');
+          } else if (this.attackPhase === 1) {
+            for (let i = -2; i <= 2; i++) {
+              room.projectiles.push(new Projectile(
+                this.x, this.y, Math.cos(a + i * 0.2) * 500, Math.sin(a + i * 0.2) * 500,
+                this.faction, 1, 'plasma', '#00f0ff'
+              ));
+            }
+            soundEngine.playShoot('plasma');
+          } else {
+            if (window.gameInstance) {
+              window.gameInstance.addParticle(new Shockwave(this.x, this.y, 180, '#00f0ff'));
+              window.gameInstance.screenShake(8, 0.3);
+            }
+            soundEngine.playExplosion();
+          }
+        }
+      }
+
+      onDeath(source) {
+        super.onDeath(source);
+        soundEngine.playBossRoar();
+        if (window.gameInstance) window.gameInstance.onBossDefeated();
+      }
+    }
+
+    // Sector 3 Boss: Entropia
+    class BossEntropia extends Enemy {
+      constructor(x, y) {
+        super(x, y, 48, CONSTANTS.FACTIONS.VOID);
+        this.isBoss = true;
+        this.bossName = "ENTROPIA: ANOMALIA DO VÁCUO";
+        this.maxHp = 680;
+        this.hp = 680;
+        this.speed = 40;
+        this.phaseTimer = 0;
+        this.spiralAngle = 0;
+        this.contactDamage = 2;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        this.phaseTimer += dt;
+        this.spiralAngle += dt * 4;
+
+        if (Math.random() < 0.35) {
+          room.projectiles.push(new Projectile(
+            this.x, this.y, Math.cos(this.spiralAngle) * 260, Math.sin(this.spiralAngle) * 260,
+            this.faction, 1, 'plasma', '#bf55ec'
+          ));
+        }
+
+        if (this.phaseTimer >= 3.2) {
+          this.phaseTimer = 0;
+          if (window.gameInstance) {
+            window.gameInstance.addParticle(new Shockwave(this.x, this.y, 250, '#bf55ec'));
+            const p = window.gameInstance.player;
+            if (p) {
+              const pull = Math.atan2(this.y - p.y, this.x - p.x);
+              p.vx += Math.cos(pull) * 350;
+              p.vy += Math.sin(pull) * 350;
+            }
+          }
+          soundEngine.playBossRoar();
+        }
+      }
+
+      onDeath(source) {
+        super.onDeath(source);
+        soundEngine.playBossRoar();
+        if (window.gameInstance) window.gameInstance.onBossDefeated();
+      }
+    }
+
+    // Sector 4 Final Boss: Archon do Vazio
+    class BossArchon extends Enemy {
+      constructor(x, y) {
+        super(x, y, 54, CONSTANTS.FACTIONS.VOID);
+        this.isBoss = true;
+        this.isFinalBoss = true;
+        this.bossName = "ARCHON DO VAZIO: SOBERANO DO NÚCLEO";
+        this.maxHp = 950;
+        this.hp = 950;
+        this.speed = 45;
+        this.phaseTimer = 0;
+        this.spiralAngle = 0;
+        this.contactDamage = 2;
+      }
+
+      executeAI(dt, room) {
+        if (!this.target) return;
+        this.phaseTimer += dt;
+        this.spiralAngle += dt * 5;
+
+        // Radial pulses
+        if (Math.random() < 0.4) {
+          room.projectiles.push(new Projectile(
+            this.x, this.y, Math.cos(this.spiralAngle) * 280, Math.sin(this.spiralAngle) * 280,
+            this.faction, 1, 'plasma', '#ff0055'
+          ));
+          room.projectiles.push(new Projectile(
+            this.x, this.y, Math.cos(this.spiralAngle + Math.PI) * 280, Math.sin(this.spiralAngle + Math.PI) * 280,
+            this.faction, 1, 'plasma', '#ff0055'
+          ));
+        }
+
+        const a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.vx = Math.cos(a) * this.speed;
+        this.vy = Math.sin(a) * this.speed;
+
+        if (this.phaseTimer >= 3.0) {
+          this.phaseTimer = 0;
+          soundEngine.playBossRoar();
+
+          if (this.hp > 450) {
+            // High-speed piercing barrage
+            for (let i = -2; i <= 2; i++) {
+              room.projectiles.push(new Projectile(
+                this.x, this.y, Math.cos(a + i * 0.25) * 520, Math.sin(a + i * 0.25) * 520,
+                this.faction, 1, 'rail', '#ff0055'
+              ));
+            }
+          } else {
+            // Enraged phase: Gravitational shockwave & homing scythes
+            if (window.gameInstance) {
+              window.gameInstance.addParticle(new Shockwave(this.x, this.y, 280, '#ff0055'));
+              window.gameInstance.screenShake(10, 0.4);
+            }
+            for (let i = 0; i < 8; i++) {
+              const ang = (i / 8) * Math.PI * 2;
+              const p = new Projectile(
+                this.x, this.y, Math.cos(ang) * 240, Math.sin(ang) * 240,
+                this.faction, 1, 'missile', '#ff0055'
+              );
+              p.homing = true;
+              room.projectiles.push(p);
+            }
+          }
+        }
+      }
+
+      onDeath(source) {
+        super.onDeath(source);
+        soundEngine.playBossRoar();
+        if (window.gameInstance) {
+          window.gameInstance.onFinalVictory();
+        }
+      }
+    }
+
+    // ==========================================
+    // 6. PARTICLES & RETRO FX
+    // ==========================================
+    class Particle {
+      constructor(x, y, vx, vy, color, size, life) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+        this.size = size;
+        this.life = life;
+        this.maxLife = life;
+        this.dead = false;
+      }
+
+      update(dt) {
+        this.life -= dt;
+        if (this.life <= 0) {
+          this.dead = true;
+          return;
+        }
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+      }
+
+      draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(Math.round(this.x), Math.round(this.y), this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    class FloatingText {
+      constructor(x, y, text, color = '#ffffff') {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.color = color;
+        this.life = 1.0;
+        this.maxLife = 1.0;
+        this.dead = false;
+      }
+
+      update(dt) {
+        this.life -= dt;
+        this.y -= 25 * dt;
+        if (this.life <= 0) this.dead = true;
+      }
+
+      draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = 'bold 12px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#000000';
+        ctx.fillText(this.text, this.x - 1, this.y - 1);
+        ctx.fillText(this.text, this.x + 1, this.y + 1);
+        ctx.fillStyle = this.color;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+      }
+    }
+
+    class Shockwave {
+      constructor(x, y, maxRadius, color = '#00f0ff') {
+        this.x = x;
+        this.y = y;
+        this.radius = 5;
+        this.maxRadius = maxRadius;
+        this.color = color;
+        this.life = 0.35;
+        this.maxLife = 0.35;
+        this.dead = false;
+      }
+
+      update(dt) {
+        this.life -= dt;
+        const prog = 1 - (this.life / this.maxLife);
+        this.radius = 5 + prog * this.maxRadius;
+        if (this.life <= 0) this.dead = true;
+      }
+
+      draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+        ctx.restore();
+      }
+    }
+
+    class TentacleWhip {
+      constructor(x1, y1, x2, y2) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.life = 0.22;
+        this.maxLife = 0.22;
+        this.dead = false;
+      }
+
+      update(dt) {
+        this.life -= dt;
+        if (this.life <= 0) this.dead = true;
+      }
+
+      draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = '#39ff14';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(this.x1, this.y1);
+        const midX = (this.x1 + this.x2) / 2 + (Math.random() - 0.5) * 30;
+        const midY = (this.y1 + this.y2) / 2 + (Math.random() - 0.5) * 30;
+        ctx.lineTo(midX, midY);
+        ctx.lineTo(this.x2, this.y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    class FireParticle extends Particle {
+      constructor(x, y) {
+        super(x, y, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, '#ff4400', 4, 0.35);
+      }
+    }
+
+    // ==========================================
+    // 7. DUNGEON GENERATION & ROOMS
+    // ==========================================
+    class Room {
+      constructor(gx, gy, type = 'COMBAT', sector) {
+        this.gx = gx;
+        this.gy = gy;
+        this.type = type;
+        this.sector = sector;
+        this.doors = { north: false, south: false, east: false, west: false };
+        this.doorsLocked = false;
+        this.visited = false;
+        this.cleared = (type === 'START' || type === 'TREASURE' || type === 'MUTAGEN' || type === 'FABRICATOR');
+        this.enemies = [];
+        this.pendingEnemies = [];
+        this.projectiles = [];
+        this.obstacles = [];
+        this.pickups = [];
+        this.hazards = [];
+        this.airlockActive = false;
+        this.vacuumBreach = (sector.hasVacuum || (type === 'HAZARD' && Math.random() < 0.6));
+
+        this.initLayout();
+      }
+
+      initLayout() {
+        const W = CONSTANTS.ROOM_WIDTH;
+        const H = CONSTANTS.ROOM_HEIGHT;
+
+        if (this.type === 'START') {
+          this.obstacles.push({ x: W / 2 - 30, y: 120, w: 60, h: 40, type: 'terminal' });
+        } else if (this.type === 'TREASURE') {
+          this.obstacles.push({ x: W / 2 - 25, y: H / 2 - 25, w: 50, h: 50, type: 'pedestal' });
+        } else if (this.type === 'MUTAGEN') {
+          this.obstacles.push({ x: W / 2 - 30, y: H / 2 - 30, w: 60, h: 60, type: 'mutagen_pod' });
+        } else if (this.type === 'FABRICATOR') {
+          this.obstacles.push(
+            { x: W / 2 - 120, y: 120, w: 70, h: 45, type: 'shop_item', index: 0 },
+            { x: W / 2 + 50, y: 120, w: 70, h: 45, type: 'shop_item', index: 1 },
+            { x: W / 2 - 120, y: H - 160, w: 70, h: 45, type: 'shop_heal' },
+            { x: W / 2 + 50, y: H - 160, w: 70, h: 45, type: 'shop_o2' }
+          );
+        } else if (this.type === 'BOSS') {
+          this.obstacles.push(
+            { x: 160, y: 160, w: 50, h: 50, type: 'pillar' },
+            { x: W - 210, y: 160, w: 50, h: 50, type: 'pillar' },
+            { x: 160, y: H - 210, w: 50, h: 50, type: 'pillar' },
+            { x: W - 210, y: H - 210, w: 50, h: 50, type: 'pillar' }
+          );
+        } else {
+          // Combat layout
+          const layout = Math.floor(Math.random() * 4);
+          if (layout === 0) {
+            this.obstacles.push(
+              { x: W * 0.3, y: H * 0.35, w: 50, h: 50, type: 'crate' },
+              { x: W * 0.7 - 50, y: H * 0.35, w: 50, h: 50, type: 'crate' },
+              { x: W * 0.3, y: H * 0.65 - 50, w: 50, h: 50, type: 'crate' },
+              { x: W * 0.7 - 50, y: H * 0.65 - 50, w: 50, h: 50, type: 'crate' }
+            );
+          } else if (layout === 1) {
+            this.obstacles.push({ x: W / 2 - 40, y: H / 2 - 40, w: 80, h: 80, type: 'pillar' });
+            this.obstacles.push(
+              { x: W / 2 - 140, y: H / 2 - 18, w: 36, h: 36, type: 'explosive_barrel', hp: 20 },
+              { x: W / 2 + 104, y: H / 2 - 18, w: 36, h: 36, type: 'explosive_barrel', hp: 20 }
+            );
+          } else if (layout === 2) {
+            this.hazards.push({
+              x: W / 2 - 70,
+              y: H / 2 - 70,
+              w: 140,
+              h: 140,
+              type: 'acid_pool'
+            });
+          } else {
+            this.obstacles.push(
+              { x: 200, y: 150, w: 60, h: 40, type: 'crate' },
+              { x: W - 260, y: H - 190, w: 60, h: 40, type: 'crate' },
+              { x: W / 2 - 18, y: H / 2 - 18, w: 36, h: 36, type: 'explosive_barrel', hp: 20 }
+            );
+          }
+        }
+      }
+
+      spawnEnemies() {
+        if (this.cleared || this.enemies.length > 0) return;
+
+        const W = CONSTANTS.ROOM_WIDTH;
+        const H = CONSTANTS.ROOM_HEIGHT;
+
+        if (this.type === 'BOSS') {
+          if (this.sector.id === 1) {
+            this.enemies.push(new BossGorgon(W / 2, H / 2));
+          } else if (this.sector.id === 2) {
+            this.enemies.push(new BossTitan(W / 2, H / 2));
+          } else if (this.sector.id === 3) {
+            this.enemies.push(new BossEntropia(W / 2, H / 2));
+          } else {
+            // Sector 4: Final Boss Archon
+            this.enemies.push(new BossArchon(W / 2, H / 2));
+          }
+          return;
+        }
+
+        if (this.type === 'HAZARD') {
+          // Warzone: Aliens vs Robots
+          this.enemies.push(new BioSwarmer(200, 200));
+          this.enemies.push(new BioSpitter(200, H - 200));
+          this.enemies.push(new RoboDrone(W - 200, 200));
+          this.enemies.push(new RoboSentry(W - 200, H - 200));
+          return;
+        }
+
+        const count = 3 + Math.floor(Math.random() * 3) + Math.floor(this.sector.id * 0.7);
+        const theme = this.sector.theme;
+
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2;
+          const d = 180 + Math.random() * 70;
+          const ex = W / 2 + Math.cos(a) * d;
+          const ey = H / 2 + Math.sin(a) * d;
+
+          if (theme === 'organic') {
+            const roll = Math.random();
+            if (roll < 0.55) this.enemies.push(new BioSwarmer(ex, ey));
+            else if (roll < 0.85) this.enemies.push(new BioSpitter(ex, ey));
+            else this.enemies.push(new BioBrood(ex, ey));
+          } else if (theme === 'robotic') {
+            const roll = Math.random();
+            if (roll < 0.45) this.enemies.push(new RoboDrone(ex, ey));
+            else if (roll < 0.75) this.enemies.push(new RoboSentry(ex, ey));
+            else this.enemies.push(new RoboRoller(ex, ey));
+          } else if (theme === 'vacuum') {
+            const roll = Math.random();
+            if (roll < 0.4) this.enemies.push(new VoidPhantom(ex, ey));
+            else if (roll < 0.7) this.enemies.push(new RoboDrone(ex, ey));
+            else this.enemies.push(new BioSpitter(ex, ey));
+          } else {
+            // Core theme: Mixed elite enemies
+            const roll = Math.random();
+            if (roll < 0.35) this.enemies.push(new VoidPhantom(ex, ey));
+            else if (roll < 0.65) this.enemies.push(new RoboRoller(ex, ey));
+            else this.enemies.push(new BioBrood(ex, ey));
+          }
+        }
+      }
+    }
+
+    class Dungeon {
+      constructor(sector) {
+        this.sector = sector;
+        this.gridSize = 7;
+        this.rooms = new Map();
+        this.startRoom = null;
+        this.bossRoom = null;
+        this.currentRoom = null;
+
+        this.generate();
+      }
+
+      generate() {
+        const center = Math.floor(this.gridSize / 2);
+        const targetCount = this.sector.roomCount || 8;
+        const positions = [{ x: center, y: center }];
+        const posSet = new Set([`${center},${center}`]);
+
+        let safety = 0;
+        while (positions.length < targetCount && safety < 300) {
+          safety++;
+          const base = positions[Math.floor(Math.random() * positions.length)];
+          const dirs = [
+            { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }
+          ];
+          const dir = dirs[Math.floor(Math.random() * dirs.length)];
+          const nx = base.x + dir.dx;
+          const ny = base.y + dir.dy;
+          const key = `${nx},${ny}`;
+
+          if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize && !posSet.has(key)) {
+            let neighbors = 0;
+            dirs.forEach(d => {
+              if (posSet.has(`${nx + d.dx},${ny + d.dy}`)) neighbors++;
+            });
+            if (neighbors === 1 || Math.random() < 0.35) {
+              positions.push({ x: nx, y: ny });
+              posSet.add(key);
+            }
+          }
+        }
+
+        const startPos = positions[0];
+        const deadEnds = [];
+        const dirs = [
+          { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }
+        ];
+
+        positions.forEach(p => {
+          let neighbors = 0;
+          dirs.forEach(d => {
+            if (posSet.has(`${p.x + d.dx},${p.y + d.dy}`)) neighbors++;
+          });
+          const dist = Math.abs(p.x - startPos.x) + Math.abs(p.y - startPos.y);
+          if (neighbors === 1 && (p.x !== startPos.x || p.y !== startPos.y)) {
+            deadEnds.push({ ...p, dist });
+          }
+        });
+
+        deadEnds.sort((a, b) => b.dist - a.dist);
+        const bossPos = deadEnds.length > 0 ? deadEnds[0] : positions[positions.length - 1];
+        const remDeadEnds = deadEnds.filter(p => `${p.x},${p.y}` !== `${bossPos.x},${bossPos.y}`);
+        const treasurePos = remDeadEnds[0] || positions[1];
+        const mutagenPos = remDeadEnds[1] || positions[2];
+        const shopPos = remDeadEnds[2] || positions[3];
+
+        positions.forEach(p => {
+          const key = `${p.x},${p.y}`;
+          let type = 'COMBAT';
+
+          if (p.x === startPos.x && p.y === startPos.y) type = 'START';
+          else if (p.x === bossPos.x && p.y === bossPos.y) type = 'BOSS';
+          else if (p.x === treasurePos.x && p.y === treasurePos.y) type = 'TREASURE';
+          else if (p.x === mutagenPos.x && p.y === mutagenPos.y) type = 'MUTAGEN';
+          else if (p.x === shopPos.x && p.y === shopPos.y) type = 'FABRICATOR';
+          else if (Math.random() < 0.25) type = 'HAZARD';
+
+          const room = new Room(p.x, p.y, type, this.sector);
+          this.rooms.set(key, room);
+
+          if (type === 'START') this.startRoom = room;
+          if (type === 'BOSS') this.bossRoom = room;
+        });
+
+        // Link doors
+        this.rooms.forEach(room => {
+          if (this.rooms.has(`${room.gx},${room.gy - 1}`)) room.doors.north = true;
+          if (this.rooms.has(`${room.gx},${room.gy + 1}`)) room.doors.south = true;
+          if (this.rooms.has(`${room.gx + 1},${room.gy}`)) room.doors.east = true;
+          if (this.rooms.has(`${room.gx - 1},${room.gy}`)) room.doors.west = true;
+        });
+
+        this.currentRoom = this.startRoom;
+        this.currentRoom.visited = true;
+      }
+
+      getRoom(gx, gy) {
+        return this.rooms.get(`${gx},${gy}`) || null;
+      }
+    }
+
+    // ==========================================
+    // 8. MAIN GAME CONTROLLER & GAME LOOP
+    // ==========================================
+    class Game {
+      constructor() {
+        window.gameInstance = this;
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.imageSmoothingEnabled = false;
+
+        this.width = CONSTANTS.CANVAS_WIDTH;
+        this.height = CONSTANTS.CANVAS_HEIGHT;
+
+        this.currentSectorIndex = 0;
+        this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
+        this.dungeon = null;
+        this.player = null;
+
+        // Rock-Solid Room Transition Architecture
+        this.transitionProgress = 0;
+        this.transitionDir = { dx: 0, dy: 0 };
+        this.prevRoom = null;
+        this.nextRoom = null;
+        this.targetPlayerPos = { x: 0, y: 0 };
+
+        // Screen Shake
+        this.shakeIntensity = 0;
+        this.shakeDuration = 0;
+
+        // Particles
+        this.particles = [];
+
+        // Stars for Vacuum background
+        this.stars = [];
+        for (let i = 0; i < 90; i++) {
+          this.stars.push({
+            x: Math.random() * this.width,
+            y: Math.random() * this.height,
+            size: Math.random() < 0.8 ? 2 : 3,
+            alpha: Math.random() * 0.7 + 0.3
+          });
+        }
+
+        // Input
+        this.input = new InputSystem(this.canvas);
+
+        // State Machine: 'MENU', 'PLAYING', 'TRANSITION', 'PAUSED', 'LOADOUT', 'MUTAGEN_SELECT', 'GAME_OVER', 'VICTORY'
+        this.state = 'MENU';
+        this.lastTime = performance.now();
+
+        this.initUI();
+      }
+
+      initUI() {
+        const btnStart = document.getElementById('btnStartGame');
+        if (btnStart) btnStart.addEventListener('click', () => this.startNewRun());
+
+        const btnRestart = document.getElementById('btnRestart');
+        if (btnRestart) btnRestart.addEventListener('click', () => this.startNewRun());
+
+        const btnRestartWin = document.getElementById('btnRestartWin');
+        if (btnRestartWin) btnRestartWin.addEventListener('click', () => this.startNewRun());
+
+        const btnRestartFromPause = document.getElementById('btnRestartFromPause');
+        if (btnRestartFromPause) btnRestartFromPause.addEventListener('click', () => this.startNewRun());
+
+        const btnAudio = document.getElementById('btnToggleAudio');
+        if (btnAudio) {
+          btnAudio.addEventListener('click', () => {
+            const active = soundEngine.toggleMusic();
+            btnAudio.textContent = active ? '🔊 BGM: ON' : '🔇 BGM: OFF';
+          });
+        }
+
+        const btnSfx = document.getElementById('btnToggleSfx');
+        if (btnSfx) {
+          btnSfx.addEventListener('click', () => {
+            const active = soundEngine.toggleSfx();
+            btnSfx.textContent = active ? '💥 SFX: ON' : '🔇 SFX: OFF';
+          });
+        }
+
+        const btnLoadout = document.getElementById('btnOpenLoadout');
+        if (btnLoadout) btnLoadout.addEventListener('click', () => this.toggleLoadout());
+
+        const btnCloseLoadout = document.getElementById('btnCloseLoadout');
+        if (btnCloseLoadout) btnCloseLoadout.addEventListener('click', () => this.toggleLoadout());
+
+        const btnPause = document.getElementById('btnPauseGame');
+        if (btnPause) btnPause.addEventListener('click', () => this.togglePause());
+
+        const btnResume = document.getElementById('btnResume');
+        if (btnResume) btnResume.addEventListener('click', () => this.togglePause());
+      }
+
+      startNewRun() {
+        this.currentSectorIndex = 0;
+        this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
+        this.player = new Player(this.width / 2, this.height / 2, this);
+        this.loadSector(this.currentSectorIndex);
+
+        document.querySelectorAll('.game-modal').forEach(m => m.classList.add('hidden'));
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('hudOverlay').classList.remove('hidden');
+
+        this.state = 'PLAYING';
+      }
+
+      loadSector(index) {
+        this.currentSectorIndex = index;
+        this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
+        this.dungeon = new Dungeon(this.sector);
+        this.particles = [];
+
+        this.player.x = this.width / 2;
+        this.player.y = this.height / 2;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.o2 = this.player.maxO2;
+
+        soundEngine.setMusicTheme(this.sector.ambientMusic);
+        this.updateSectorBanner();
+      }
+
+      updateSectorBanner() {
+        const banner = document.getElementById('sectorBanner');
+        if (banner) {
+          banner.textContent = this.sector.name.toUpperCase();
+          banner.style.color = this.sector.accentColor;
+          banner.style.borderColor = this.sector.accentColor;
+        }
+      }
+
+      screenShake(intensity, duration) {
+        this.shakeIntensity = intensity;
+        this.shakeDuration = duration;
+      }
+
+      addParticle(p) {
+        this.particles.push(p);
+      }
+
+      // --- ROCK-SOLID ROOM TRANSITION ---
+      checkDoorTransitions() {
+        if (this.state !== 'PLAYING' || !this.dungeon.currentRoom) return;
+        const room = this.dungeon.currentRoom;
+        if (room.doorsLocked) return;
+
+        const p = this.player;
+        const W = this.width;
+        const H = this.height;
+        const T = CONSTANTS.WALL_THICKNESS;
+        const D = CONSTANTS.DOOR_SIZE;
+
+        // North Door
+        if (room.doors.north && p.y - p.radius <= T + 2 && Math.abs(p.x - W / 2) < D / 2) {
+          this.initiateTransition(0, -1, p.x, H - T - p.radius - 22);
+        }
+        // South Door
+        else if (room.doors.south && p.y + p.radius >= H - T - 2 && Math.abs(p.x - W / 2) < D / 2) {
+          this.initiateTransition(0, 1, p.x, T + p.radius + 22);
+        }
+        // East Door
+        else if (room.doors.east && p.x + p.radius >= W - T - 2 && Math.abs(p.y - H / 2) < D / 2) {
+          this.initiateTransition(1, 0, T + p.radius + 22, p.y);
+        }
+        // West Door
+        else if (room.doors.west && p.x - p.radius <= T + 2 && Math.abs(p.y - H / 2) < D / 2) {
+          this.initiateTransition(-1, 0, W - T - p.radius - 22, p.y);
+        }
+      }
+
+      initiateTransition(dx, dy, targetX, targetY) {
+        const cur = this.dungeon.currentRoom;
+        const next = this.dungeon.getRoom(cur.gx + dx, cur.gy + dy);
+        if (!next) return;
+
+        this.state = 'TRANSITION';
+        this.transitionProgress = 0;
+        this.transitionDir = { dx, dy };
+        this.prevRoom = cur;
+        this.nextRoom = next;
+        this.targetPlayerPos = { x: targetX, y: targetY };
+
+        soundEngine.playDoorOpen();
+      }
+
+      updateTransition(dt) {
+        this.transitionProgress += dt * 2.8;
+
+        if (this.transitionProgress >= 1.0) {
+          this.transitionProgress = 1.0;
+
+          this.dungeon.currentRoom = this.nextRoom;
+          this.dungeon.currentRoom.visited = true;
+
+          // Safe placement of player beyond door sensor
+          this.player.x = this.targetPlayerPos.x;
+          this.player.y = this.targetPlayerPos.y;
+          this.player.vx = 0;
+          this.player.vy = 0;
+
+          if (!this.dungeon.currentRoom.cleared) {
+            this.dungeon.currentRoom.spawnEnemies();
+            if (this.dungeon.currentRoom.enemies.length > 0) {
+              this.dungeon.currentRoom.doorsLocked = true;
+            }
+          }
+
+          this.prevRoom.projectiles = [];
+          this.prevRoom = null;
+          this.nextRoom = null;
+
+          this.state = 'PLAYING';
+        }
+      }
+
+      // --- CRITICAL FIX: SAFE CONTACT DAMAGE & COLLISION RESOLUTION ---
+      resolvePlayerEnemyCollisions() {
+        const room = this.dungeon?.currentRoom;
+        if (!room || !room.enemies || !this.player || this.player.dead) return;
+
+        for (let enemy of room.enemies) {
+          if (enemy.dead) continue;
+
+          const dx = this.player.x - enemy.x;
+          const dy = this.player.y - enemy.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = this.player.radius + enemy.radius;
+
+          if (dist < minDist) {
+            // Safe angle calculation preventing division by zero
+            const angle = dist > 0.001 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2;
+            const overlap = minDist - Math.max(dist, 0.001);
+
+            // Elastic separation (Player cannot get stuck inside enemies)
+            this.player.x += Math.cos(angle) * (overlap * 0.6);
+            this.player.y += Math.sin(angle) * (overlap * 0.6);
+            enemy.x -= Math.cos(angle) * (overlap * 0.4);
+            enemy.y -= Math.sin(angle) * (overlap * 0.4);
+
+            // Controlled Contact Damage
+            if (enemy.faction !== CONSTANTS.FACTIONS.PLAYER) {
+              if (this.player.invulnTimer <= 0 && !this.player.isDashing && !this.player.dead) {
+                const dmg = enemy.contactDamage || 1;
+                const tookDamage = this.player.takeDamage(dmg, enemy);
+                if (tookDamage) {
+                  // Controlled knockback
+                  const knockSpeed = 380;
+                  this.player.vx = Math.cos(angle) * knockSpeed;
+                  this.player.vy = Math.sin(angle) * knockSpeed;
+                  enemy.vx = -Math.cos(angle) * 150;
+                  enemy.vy = -Math.sin(angle) * 150;
+
+                  this.screenShake(6, 0.2);
+                  this.addParticle(new Shockwave(this.player.x, this.player.y, 40, '#ff2a5f'));
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Soft separation among enemies so they don't clump into a single point
+      resolveEnemyInteractions(dt, room) {
+        if (!room || !room.enemies) return;
+        const enemies = room.enemies;
+        const count = enemies.length;
+
+        for (let i = 0; i < count; i++) {
+          const e1 = enemies[i];
+          if (e1.dead) continue;
+
+          for (let j = i + 1; j < count; j++) {
+            const e2 = enemies[j];
+            if (e2.dead) continue;
+
+            const dx = e1.x - e2.x;
+            const dy = e1.y - e2.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = e1.radius + e2.radius;
+
+            if (dist < minDist) {
+              const angle = dist > 0.001 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2;
+              const overlap = minDist - Math.max(dist, 0.001);
+              e1.x += Math.cos(angle) * (overlap * 0.5);
+              e1.y += Math.sin(angle) * (overlap * 0.5);
+              e2.x -= Math.cos(angle) * (overlap * 0.5);
+              e2.y -= Math.sin(angle) * (overlap * 0.5);
+
+              // Inter-faction melee clash (Alien vs Robot)
+              if (e1.faction !== e2.faction && !e1.isHacked !== !e2.isHacked) {
+                if (Math.random() < 0.05) {
+                  e1.takeDamage(1, e2);
+                  e2.takeDamage(1, e1);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // --- INTERACTIONS ---
+      checkInteractions() {
+        const room = this.dungeon.currentRoom;
+        if (!room || this.state !== 'PLAYING') return;
+
+        // Pedestal
+        if (room.type === 'TREASURE' && !room.treasureClaimed) {
+          const ped = room.obstacles.find(o => o.type === 'pedestal');
+          if (ped && Math.hypot(this.player.x - (ped.x + ped.w / 2), this.player.y - (ped.y + ped.h / 2)) < 55) {
+            const unequipped = CONSTANTS.MODULES.filter(m => m.id !== 'weapon_blaster');
+            const chosen = unequipped[Math.floor(Math.random() * unequipped.length)];
+            this.player.collectPickup({ type: 'module_item', module: chosen });
+            room.treasureClaimed = true;
+            ped.claimed = true;
+          }
+        }
+
+        // Mutagen Pod
+        if (room.type === 'MUTAGEN' && !room.mutagenClaimed) {
+          const pod = room.obstacles.find(o => o.type === 'mutagen_pod');
+          if (pod && Math.hypot(this.player.x - (pod.x + pod.w / 2), this.player.y - (pod.y + pod.h / 2)) < 60) {
+            this.openMutagenModal();
+          }
+        }
+
+        // Shop items
+        if (room.type === 'FABRICATOR') {
+          room.obstacles.forEach(obs => {
+            if (obs.type === 'shop_item' && !obs.bought) {
+              if (Math.hypot(this.player.x - (obs.x + obs.w / 2), this.player.y - (obs.y + obs.h / 2)) < 50) {
+                if (this.player.scrap >= 25) {
+                  this.player.scrap -= 25;
+                  obs.bought = true;
+                  const pool = CONSTANTS.MODULES.filter(m => !Object.values(this.player.modules).includes(m));
+                  const mod = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : CONSTANTS.MODULES[1];
+                  this.player.collectPickup({ type: 'module_item', module: mod });
+                }
+              }
+            } else if (obs.type === 'shop_heal' && !obs.bought) {
+              if (Math.hypot(this.player.x - (obs.x + obs.w / 2), this.player.y - (obs.y + obs.h / 2)) < 50) {
+                if (this.player.scrap >= 15 && this.player.hp < this.player.maxHp) {
+                  this.player.scrap -= 15;
+                  this.player.hp = Math.min(this.player.maxHp, this.player.hp + 2);
+                  obs.bought = true;
+                  soundEngine.playPickup('scrap');
+                  this.addParticle(new FloatingText(obs.x + 35, obs.y - 15, "NANITES +2 HP", "#39ff14"));
+                }
+              }
+            } else if (obs.type === 'shop_o2' && !obs.bought) {
+              if (Math.hypot(this.player.x - (obs.x + obs.w / 2), this.player.y - (obs.y + obs.h / 2)) < 50) {
+                if (this.player.scrap >= 10) {
+                  this.player.scrap -= 10;
+                  this.player.o2 = 100;
+                  obs.bought = true;
+                  soundEngine.playPickup('scrap');
+                  this.addParticle(new FloatingText(obs.x + 35, obs.y - 15, "O2 RECARREGADO", "#00f0ff"));
+                }
+              }
+            }
+          });
+        }
+
+        // Boss Airlock Elevator (advances to next sector)
+        if (room.type === 'BOSS' && room.airlockActive) {
+          if (Math.hypot(this.player.x - this.width / 2, this.player.y - this.height / 2) < 45) {
+            this.advanceToNextSector();
+          }
+        }
+      }
+
+      openMutagenModal() {
+        const pool = CONSTANTS.MUTATIONS.filter(m => !this.player.mutations[m.id]);
+        if (pool.length === 0) return;
+
+        const mut = pool[Math.floor(Math.random() * pool.length)];
+        const modal = document.getElementById('mutagenModal');
+        document.getElementById('mutagenTitle').textContent = `${mut.icon} ${mut.name}`;
+        document.getElementById('mutagenBoon').textContent = mut.boon;
+        document.getElementById('mutagenDrawback').textContent = mut.drawback;
+
+        modal.classList.remove('hidden');
+        this.state = 'MUTAGEN_SELECT';
+
+        document.getElementById('btnAcceptMutation').onclick = () => {
+          mut.apply(this.player);
+          this.player.stats.mutationsCount++;
+          const r = this.dungeon.currentRoom;
+          if (r) {
+            r.mutagenClaimed = true;
+            const pod = r.obstacles.find(o => o.type === 'mutagen_pod');
+            if (pod) pod.claimed = true;
+          }
+          modal.classList.add('hidden');
+          this.state = 'PLAYING';
+          this.addParticle(new Shockwave(this.player.x, this.player.y, 100, '#39ff14'));
+          soundEngine.playPickup('mutation');
+        };
+
+        document.getElementById('btnRejectMutation').onclick = () => {
+          const r = this.dungeon.currentRoom;
+          if (r) r.mutagenClaimed = true;
+          modal.classList.add('hidden');
+          this.state = 'PLAYING';
+        };
+      }
+
+      toggleLoadout() {
+        const modal = document.getElementById('loadoutModal');
+        if (this.state === 'PLAYING') {
+          this.state = 'LOADOUT';
+          modal.classList.remove('hidden');
+          this.renderLoadoutUI();
+        } else if (this.state === 'LOADOUT') {
+          this.state = 'PLAYING';
+          modal.classList.add('hidden');
+        }
+      }
+
+      renderLoadoutUI() {
+        const slotsEl = document.getElementById('equippedSlots');
+        const invEl = document.getElementById('inventoryModules');
+        const mutEl = document.getElementById('activeMutationsList');
+        if (!slotsEl || !invEl || !mutEl) return;
+
+        slotsEl.innerHTML = '';
+        const slots = [
+          { key: 'weapon', label: 'ARMA' },
+          { key: 'chassis', label: 'CHASSIS' },
+          { key: 'engine', label: 'PROPULSOR' },
+          { key: 'core', label: 'NÚCLEO' }
+        ];
+
+        slots.forEach(s => {
+          const mod = this.player.modules[s.key];
+          const div = document.createElement('div');
+          div.className = 'loadout-slot';
+          div.innerHTML = `
+            <div class="slot-tag">${s.label}</div>
+            <div class="slot-title">${mod ? `${mod.icon} ${mod.name}` : 'Vazio'}</div>
+            <div class="slot-desc">${mod ? mod.description : 'Nenhum componente acoplado.'}</div>
+          `;
+          slotsEl.appendChild(div);
+        });
+
+        invEl.innerHTML = '';
+        if (this.player.modulesInventory.length === 0) {
+          invEl.innerHTML = '<p style="color:var(--text-muted); font-size:11px;">Nenhum módulo sobressalente no armazenamento.</p>';
+        } else {
+          this.player.modulesInventory.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'module-item-card';
+            div.innerHTML = `
+              <div><strong>${m.icon} ${m.name}</strong><br><span style="font-size:10px; color:var(--text-muted);">${m.description}</span></div>
+              <button class="hud-btn" style="margin-left:8px;">EQUIPAR</button>
+            `;
+            div.querySelector('button').onclick = () => {
+              this.player.equipModule(m);
+              this.renderLoadoutUI();
+            };
+            invEl.appendChild(div);
+          });
+        }
+
+        mutEl.innerHTML = '';
+        let hasMut = false;
+        CONSTANTS.MUTATIONS.forEach(m => {
+          if (this.player.mutations[m.id]) {
+            hasMut = true;
+            const div = document.createElement('div');
+            div.className = 'lore-panel';
+            div.style.marginBottom = '6px';
+            div.innerHTML = `
+              <div>${m.icon} <strong>${m.name}</strong></div>
+              <div style="color:var(--border-green); font-size:11px;">🟢 ${m.boon}</div>
+              <div style="color:var(--border-danger); font-size:11px;">🔴 ${m.drawback}</div>
+            `;
+            mutEl.appendChild(div);
+          }
+        });
+        if (!hasMut) {
+          mutEl.innerHTML = '<p style="color:var(--text-muted); font-size:11px;">Nenhuma simbiose detectada.</p>';
+        }
+      }
+
+      togglePause() {
+        const modal = document.getElementById('pauseModal');
+        if (this.state === 'PLAYING') {
+          this.state = 'PAUSED';
+          modal.classList.remove('hidden');
+        } else if (this.state === 'PAUSED') {
+          this.state = 'PLAYING';
+          modal.classList.add('hidden');
+        }
+      }
+
+      onBossDefeated() {
+        const room = this.dungeon.currentRoom;
+        if (!room) return;
+        room.bossDefeated = true;
+        room.airlockActive = true;
+        room.cleared = true;
+        room.doorsLocked = false;
+        this.addParticle(new Shockwave(this.width / 2, this.height / 2, 220, '#00f0ff'));
+        this.addParticle(new FloatingText(this.width / 2, this.height / 2 - 35, "ELEVADOR DO SETOR ATIVADO!", "#00f0ff"));
+      }
+
+      advanceToNextSector() {
+        const next = this.currentSectorIndex + 1;
+        if (next < CONSTANTS.SECTORS.length) {
+          this.loadSector(next);
+        } else {
+          this.onFinalVictory();
+        }
+      }
+
+      onPlayerDeath() {
+        this.state = 'GAME_OVER';
+        const modal = document.getElementById('gameOverModal');
+        if (modal) {
+          const statsEl = document.getElementById('gameOverStats');
+          if (statsEl && this.player) {
+            const sec = Math.floor((Date.now() - this.player.stats.startTime) / 1000);
+            statsEl.innerHTML = `
+              <p><strong>Setor Alcançado:</strong> ${this.sector.name}</p>
+              <p><strong>Salas Conquistadas:</strong> ${this.player.stats.roomsCleared}</p>
+              <p><strong>Criaturas Eliminadas:</strong> ${this.player.stats.aliensKilled}</p>
+              <p><strong>Autômatos Destruídos:</strong> ${this.player.stats.robotsKilled}</p>
+              <p><strong>Robôs Hackeados:</strong> ${this.player.stats.robotsHacked}</p>
+              <p><strong>Mutações Sofridas:</strong> ${this.player.stats.mutationsCount}</p>
+              <p><strong>Tempo de Sobrevivência:</strong> ${sec}s</p>
+            `;
+          }
+          modal.classList.remove('hidden');
+        }
+      }
+
+      onFinalVictory() {
+        this.state = 'VICTORY';
+        const modal = document.getElementById('victoryModal');
+        if (modal) {
+          const statsEl = document.getElementById('victoryStats');
+          if (statsEl && this.player) {
+            const sec = Math.floor((Date.now() - this.player.stats.startTime) / 1000);
+            statsEl.innerHTML = `
+              <p><strong>A ameaça biológica e os autômatos rebeldes foram silenciados.</strong></p>
+              <p><strong>Inimigos Totais Abatidos:</strong> ${this.player.stats.aliensKilled + this.player.stats.robotsKilled}</p>
+              <p><strong>Robôs Aliados Hackeados:</strong> ${this.player.stats.robotsHacked}</p>
+              <p><strong>Mutações Ativas:</strong> ${this.player.stats.mutationsCount}</p>
+              <p><strong>Tempo Total da Expedição:</strong> ${sec}s</p>
+            `;
+          }
+          modal.classList.remove('hidden');
+        }
+      }
+
+      // --- MAIN GAME LOOP ---
+      start() {
+        this.lastTime = performance.now();
+        requestAnimationFrame((t) => this.loop(t));
+      }
+
+      loop(currentTime) {
+        const dt = Math.min((currentTime - this.lastTime) / 1000, 0.05);
+        this.lastTime = currentTime;
+
+        if (this.input.justPressed['KeyI'] || this.input.justPressed['Tab']) {
+          this.toggleLoadout();
+        } else if (this.input.justPressed['Escape'] || this.input.justPressed['KeyP']) {
+          this.togglePause();
+        }
+
+        if (this.state === 'PLAYING') {
+          this.update(dt);
+        } else if (this.state === 'TRANSITION') {
+          this.updateTransition(dt);
+        }
+
+        this.render();
+        this.updateHUD();
+
+        this.input.postUpdate();
+        requestAnimationFrame((t) => this.loop(t));
+      }
+
+      update(dt) {
+        if (this.shakeDuration > 0) {
+          this.shakeDuration -= dt;
+          if (this.shakeDuration <= 0) this.shakeIntensity = 0;
+        }
+
+        const room = this.dungeon.currentRoom;
+        if (!room) return;
+
+        // 1. Update Player
+        this.player.update(dt, room, this.input);
+
+        // 2. Safe Projectile Updates
+        if (room.projectiles) {
+          for (let proj of room.projectiles) {
+            proj.update(dt, room);
+          }
+          room.projectiles = room.projectiles.filter(p => !p.dead);
+        }
+
+        // 3. Safe Enemy Updates
+        let aliveHostiles = 0;
+        if (room.enemies) {
+          for (let enemy of room.enemies) {
+            enemy.update(dt, room);
+            if (!enemy.dead && enemy.faction !== CONSTANTS.FACTIONS.PLAYER) {
+              aliveHostiles++;
+            }
+          }
+
+          // Clean removal of dead enemies
+          room.enemies = room.enemies.filter(e => !e.dead);
+
+          // Flush any pending spawned enemies
+          if (room.pendingEnemies && room.pendingEnemies.length > 0) {
+            room.enemies.push(...room.pendingEnemies);
+            room.pendingEnemies = [];
+          }
+        }
+
+        // 4. Contact Damage & Collision Resolution
+        this.resolvePlayerEnemyCollisions();
+        this.resolveEnemyInteractions(dt, room);
+
+        // 5. Room Cleared Check
+        if (aliveHostiles === 0 && !room.cleared) {
+          room.cleared = true;
+          room.doorsLocked = false;
+          this.player.stats.roomsCleared++;
+          soundEngine.playPickup('scrap');
+          this.addParticle(new FloatingText(this.width / 2, 65, "SETOR SEGURO // PORTAS LIBERADAS", "#00f0ff"));
+        }
+
+        // 6. Hazards Update
+        if (room.hazards) {
+          for (let haz of room.hazards) {
+            if (haz.duration) haz.duration -= dt;
+
+            if (haz.type === 'acid_pool' && !this.player.modules.chassis?.acidImmunity) {
+              if (this.player.x >= haz.x && this.player.x <= haz.x + haz.w &&
+                  this.player.y >= haz.y && this.player.y <= haz.y + haz.h) {
+                this.player.takeDamage(1, null);
+              }
+            }
+
+            if (room.enemies) {
+              room.enemies.forEach(e => {
+                if (e.x >= haz.x && e.x <= haz.x + haz.w && e.y >= haz.y && e.y <= haz.y + haz.h) {
+                  e.takeDamage(15 * dt, null);
+                }
+              });
+            }
+          }
+          room.hazards = room.hazards.filter(h => !h.duration || h.duration > 0);
+        }
+
+        // 7. Particles Update
+        for (let p of this.particles) {
+          p.update(dt);
+        }
+        this.particles = this.particles.filter(p => !p.dead);
+
+        this.checkInteractions();
+        this.checkDoorTransitions();
+      }
+
+      // --- RENDERING ROUTINES ---
+      render() {
+        const ctx = this.ctx;
+        ctx.save();
+
+        if (this.shakeIntensity > 0) {
+          const sx = (Math.random() - 0.5) * this.shakeIntensity;
+          const sy = (Math.random() - 0.5) * this.shakeIntensity;
+          ctx.translate(sx, sy);
+        }
+
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        if (this.state === 'TRANSITION') {
+          this.renderTransition(ctx);
+        } else if (this.dungeon && this.dungeon.currentRoom) {
+          this.renderRoom(ctx, this.dungeon.currentRoom, 0, 0);
+          this.renderEntities(ctx, this.dungeon.currentRoom);
+          this.renderParticles(ctx);
+          this.renderVignette(ctx);
+        }
+
+        ctx.restore();
+      }
+
+      renderTransition(ctx) {
+        const prog = this.transitionProgress;
+        const dx = this.transitionDir.dx * this.width * prog;
+        const dy = this.transitionDir.dy * this.height * prog;
+
+        this.renderRoom(ctx, this.prevRoom, -dx, -dy);
+        this.renderRoom(ctx, this.nextRoom, -dx + this.transitionDir.dx * this.width, -dy + this.transitionDir.dy * this.height);
+
+        const px = this.player.x + (this.targetPlayerPos.x - this.player.x) * prog;
+        const py = this.player.y + (this.targetPlayerPos.y - this.player.y) * prog;
+        PixelArt.drawPlayer(ctx, { ...this.player, x: px, y: py });
+      }
+
+      renderRoom(ctx, room, offsetX = 0, offsetY = 0) {
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+
+        const W = this.width;
+        const H = this.height;
+        const T = CONSTANTS.WALL_THICKNESS;
+
+        PixelArt.drawFloor(ctx, room, W, H, T);
+
+        if (room.hazards) {
+          room.hazards.forEach(haz => {
+            if (haz.type === 'acid_pool') {
+              ctx.fillStyle = 'rgba(57, 255, 20, 0.45)';
+              ctx.fillRect(haz.x, haz.y, haz.w, haz.h);
+              PixelArt.px(ctx, haz.x + 4, haz.y + 4, haz.w - 8, haz.h - 8, '#22c55e');
+            }
+          });
+        }
+
+        PixelArt.drawWalls(ctx, room, W, H, T);
+
+        const isLocked = room.doorsLocked;
+        if (room.doors.north) PixelArt.drawDoor(ctx, W / 2, T / 2, 'north', !isLocked, isLocked, room.sector.theme);
+        if (room.doors.south) PixelArt.drawDoor(ctx, W / 2, H - T / 2, 'south', !isLocked, isLocked, room.sector.theme);
+        if (room.doors.west) PixelArt.drawDoor(ctx, T / 2, H / 2, 'west', !isLocked, isLocked, room.sector.theme);
+        if (room.doors.east) PixelArt.drawDoor(ctx, W - T / 2, H / 2, 'east', !isLocked, isLocked, room.sector.theme);
+
+        if (room.obstacles) {
+          room.obstacles.forEach(obs => PixelArt.drawObstacle(ctx, obs, room.sector.theme));
+        }
+
+        // Boss Airlock Hatch
+        if (room.type === 'BOSS' && room.airlockActive) {
+          ctx.fillStyle = '#00f0ff';
+          ctx.fillRect(W / 2 - 25, H / 2 - 25, 50, 50);
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(W / 2 - 20, H / 2 - 20, 40, 40);
+          ctx.fillStyle = '#00f0ff';
+          ctx.font = 'bold 10px monospace';
+          ctx.textAlign = 'center';
+          const label = this.currentSectorIndex === CONSTANTS.SECTORS.length - 1 ? 'ESCAPE' : 'ELEVADOR';
+          ctx.fillText(label, W / 2, H / 2 + 3);
+        }
+
+        ctx.restore();
+      }
+
+      renderEntities(ctx, room) {
+        if (room.pickups) {
+          room.pickups.forEach(p => PixelArt.drawPickup(ctx, p));
+        }
+
+        if (room.projectiles) {
+          room.projectiles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(Math.round(p.x - p.radius), Math.round(p.y - p.radius), p.radius * 2, p.radius * 2);
+            PixelArt.px(ctx, p.x - 1, p.y - 1, 2, 2, '#ffffff');
+          });
+        }
+
+        if (room.enemies) {
+          room.enemies.forEach(e => {
+            PixelArt.drawEnemy(ctx, e);
+            if (e.isBoss) this.drawBossHealthBar(ctx, e);
+          });
+        }
+
+        if (this.player.modules.core?.hasCompanionDrone) {
+          const dx = this.player.x + Math.cos(this.player.droneAngle) * 35;
+          const dy = this.player.y + Math.sin(this.player.droneAngle) * 35;
+          ctx.fillStyle = '#00f0ff';
+          ctx.fillRect(Math.round(dx - 5), Math.round(dy - 5), 10, 10);
+          PixelArt.px(ctx, dx - 2, dy - 2, 4, 4, '#ffffff');
+        }
+
+        PixelArt.drawPlayer(ctx, this.player);
+      }
+
+      drawBossHealthBar(ctx, boss) {
+        const W = 420;
+        const H = 16;
+        const x = this.width / 2 - W / 2;
+        const y = 32;
+
+        ctx.fillStyle = '#090e18';
+        ctx.fillRect(x - 2, y - 2, W + 4, H + 4);
+        ctx.fillStyle = boss.isFinalBoss ? '#ff0055' : '#ff2a5f';
+        ctx.fillRect(x, y, Math.max(0, W * (boss.hp / boss.maxHp)), H);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 2, y - 2, W + 4, H + 4);
+
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(boss.bossName, this.width / 2, y - 6);
+      }
+
+      renderParticles(ctx) {
+        this.particles.forEach(p => p.draw(ctx));
+      }
+
+      renderVignette(ctx) {
+        const p = this.player;
+        const rad = ctx.createRadialGradient(p.x, p.y, 40, p.x, p.y, 380);
+        rad.addColorStop(0, 'rgba(0, 0, 0, 0.0)');
+        rad.addColorStop(0.75, 'rgba(0, 0, 0, 0.25)');
+        rad.addColorStop(1, 'rgba(0, 0, 0, 0.75)');
+        ctx.fillStyle = rad;
+        ctx.fillRect(0, 0, this.width, this.height);
+      }
+
+      // --- HUD SYNC & MINIMAP ---
+      updateHUD() {
+        if (!this.player) return;
+
+        const hpContainer = document.getElementById('hpDisplay');
+        if (hpContainer) {
+          let str = '';
+          for (let i = 0; i < this.player.maxHp; i++) {
+            str += i < this.player.hp ? '❤️' : '🖤';
+          }
+          hpContainer.innerHTML = str;
+        }
+
+        const shieldContainer = document.getElementById('shieldDisplay');
+        if (shieldContainer) {
+          let str = '';
+          for (let i = 0; i < this.player.maxShield; i++) {
+            str += i < this.player.shield ? '🛡️' : '🔘';
+          }
+          shieldContainer.innerHTML = str;
+        }
+
+        const o2Bar = document.getElementById('o2BarFill');
+        const o2Text = document.getElementById('o2Value');
+        const o2Widget = document.getElementById('o2Widget');
+        if (o2Bar && o2Text) {
+          const pct = Math.round(this.player.o2);
+          o2Bar.style.width = `${pct}%`;
+          o2Text.textContent = `${pct}%`;
+
+          if (this.dungeon?.currentRoom?.vacuumBreach) {
+            o2Widget.classList.add('vacuum-alert');
+          } else {
+            o2Widget.classList.remove('vacuum-alert');
+          }
+        }
+
+        const hackBar = document.getElementById('hackBarFill');
+        const hackStatus = document.getElementById('hackStatus');
+        if (hackBar && hackStatus) {
+          const totalCd = this.player.hackCooldown + this.player.hackCooldownBonus;
+          const pct = this.player.hackTimer > 0 ? (1 - this.player.hackTimer / totalCd) * 100 : 100;
+          hackBar.style.width = `${pct}%`;
+          hackStatus.textContent = this.player.hackTimer > 0 ? `${this.player.hackTimer.toFixed(1)}s` : 'PRONTO';
+        }
+
+        const scrapEl = document.getElementById('scrapValue');
+        if (scrapEl) scrapEl.textContent = this.player.scrap;
+
+        const weaponEl = document.getElementById('activeWeaponName');
+        if (weaponEl && this.player.modules.weapon) {
+          weaponEl.textContent = `${this.player.modules.weapon.icon} ${this.player.modules.weapon.name}`;
+        }
+
+        this.renderMinimap();
+      }
+
+      renderMinimap() {
+        const miniCanvas = document.getElementById('minimapCanvas');
+        if (!miniCanvas || !this.dungeon) return;
+        const mCtx = miniCanvas.getContext('2d');
+        mCtx.imageSmoothingEnabled = false;
+        mCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+
+        const size = 14;
+        const gap = 3;
+        const offsetX = 10;
+        const offsetY = 10;
+
+        this.dungeon.rooms.forEach(room => {
+          if (!room.visited) return;
+
+          const rx = offsetX + room.gx * (size + gap);
+          const ry = offsetY + room.gy * (size + gap);
+
+          if (room === this.dungeon.currentRoom) {
+            mCtx.fillStyle = '#ffffff';
+            mCtx.fillRect(rx - 1, ry - 1, size + 2, size + 2);
+          }
+
+          if (room.type === 'START') mCtx.fillStyle = '#64748b';
+          else if (room.type === 'BOSS') mCtx.fillStyle = this.currentSectorIndex === CONSTANTS.SECTORS.length - 1 ? '#ff0055' : '#ff2a5f';
+          else if (room.type === 'TREASURE') mCtx.fillStyle = '#f59e0b';
+          else if (room.type === 'MUTAGEN') mCtx.fillStyle = '#39ff14';
+          else if (room.type === 'FABRICATOR') mCtx.fillStyle = '#00f0ff';
+          else mCtx.fillStyle = '#334155';
+
+          mCtx.fillRect(rx, ry, size, size);
+        });
+      }
+    }
+
+    // ==========================================
+    // 9. INSTANTIATION & ENTRY POINT
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      window.gameInstance = new Game();
+      window.gameInstance.start();
+    });
+  </script>
 </body>
 </html>
