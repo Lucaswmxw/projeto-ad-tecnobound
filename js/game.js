@@ -1427,12 +1427,78 @@ class Game {
     this.sectorIntroTimer = 0;
     this.sectorIntroDuration = 1.65;
 
+    this.fullscreenPreferred = localStorage.getItem('tecnoboundFullscreen') === '1';
     this.initUIListeners();
+    this.initFullscreenSupport();
+  }
+
+  initFullscreenSupport() {
+    const setting = document.getElementById('mobileFullscreenSetting');
+    const btn = document.getElementById('btnToggleFullscreen');
+    const supported = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+
+    if (setting) setting.classList.toggle('fullscreen-supported', supported);
+    if (btn) {
+      btn.disabled = !supported;
+      btn.textContent = supported ? `FULL: ${document.fullscreenElement ? 'ON' : 'OFF'}` : 'FULL: N/D';
+      btn.title = supported ? 'Alternar tela cheia' : 'Seu navegador não oferece tela cheia para esta página';
+    }
+
+    document.addEventListener('fullscreenchange', () => this.updateFullscreenButton());
+    document.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButton());
+  }
+
+  updateFullscreenButton() {
+    const btn = document.getElementById('btnToggleFullscreen');
+    if (!btn) return;
+    const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    btn.textContent = `FULL: ${active ? 'ON' : 'OFF'}`;
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  }
+
+  async toggleFullscreen() {
+    const root = document.documentElement;
+    const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+    try {
+      if (active) {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        this.fullscreenPreferred = false;
+        localStorage.setItem('tecnoboundFullscreen', '0');
+      } else {
+        const request = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (!request) return;
+        await request.call(root);
+        this.fullscreenPreferred = true;
+        localStorage.setItem('tecnoboundFullscreen', '1');
+      }
+    } catch (err) {
+      // Browsers can reject fullscreen if the gesture is no longer considered user-initiated.
+      this.fullscreenPreferred = false;
+      localStorage.setItem('tecnoboundFullscreen', '0');
+    } finally {
+      this.updateFullscreenButton();
+    }
+  }
+
+  async enterPreferredFullscreen() {
+    if (!this.fullscreenPreferred) return;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const root = document.documentElement;
+    const request = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (!request) return;
+    try {
+      await request.call(root);
+      this.updateFullscreenButton();
+    } catch (err) {
+      // Some mobile browsers only allow fullscreen from a direct gesture.
+    }
   }
 
   initUIListeners() {
     const btnStart = document.getElementById('btnStartGame');
-    if (btnStart) btnStart.addEventListener('click', () => this.startNewRun());
+    if (btnStart) btnStart.addEventListener('click', () => { this.startNewRun(); this.enterPreferredFullscreen(); });
 
     const btnRestart = document.getElementById('btnRestart');
     if (btnRestart) btnRestart.addEventListener('click', () => this.startNewRun());
@@ -1451,6 +1517,14 @@ class Game {
 
     const btnCloseLoadout = document.getElementById('btnCloseLoadout');
     if (btnCloseLoadout) btnCloseLoadout.addEventListener('click', () => this.toggleLoadout());
+
+    const btnFullscreen = document.getElementById('btnToggleFullscreen');
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.toggleFullscreen();
+      });
+    }
 
     const btnPause = document.getElementById('btnPauseGame');
     if (btnPause) btnPause.addEventListener('click', () => this.togglePause());
