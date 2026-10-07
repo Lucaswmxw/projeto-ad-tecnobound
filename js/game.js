@@ -960,43 +960,87 @@ const PixelArt = {
     // BOSSES
     // ==========================================
     else if (e instanceof BossGorgon) {
-      // Sector 1 Boss: Gorgon - tall, sharp giant insect silhouette.
+      // Sector 1 Boss: Gorgon - rounded, intimidating giant insect.
+      // The silhouette stays broad and circular, but uses layered carapace, eyes, mandibles and legs.
+      ctx.save();
+
+      // Outer insect carapace.
       ctx.fillStyle = '#0b3b24';
       ctx.beginPath();
-      ctx.moveTo(-e.radius*0.55,-e.radius*1.05); ctx.lineTo(-e.radius*0.25,-e.radius*1.28);
-      ctx.lineTo(e.radius*0.18,-e.radius*1.12); ctx.lineTo(e.radius*0.58,-e.radius*0.78);
-      ctx.lineTo(e.radius*0.82,-e.radius*0.18); ctx.lineTo(e.radius*0.66,e.radius*0.62);
-      ctx.lineTo(e.radius*0.3,e.radius*1.08); ctx.lineTo(0,e.radius*0.78);
-      ctx.lineTo(-e.radius*0.3,e.radius*1.08); ctx.lineTo(-e.radius*0.66,e.radius*0.62);
-      ctx.lineTo(-e.radius*0.82,-e.radius*0.18); ctx.lineTo(-e.radius*0.7,-e.radius*0.72); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 4; ctx.stroke();
-
-      // Huge Spiked Curved Horns
-      ctx.fillStyle = '#166534';
-      ctx.beginPath();
-      ctx.moveTo(e.radius * 0.5, -e.radius * 0.8);
-      ctx.lineTo(e.radius * 1.1, -e.radius * 1.3);
-      ctx.lineTo(e.radius * 0.2, -e.radius * 0.5);
+      ctx.arc(0, 0, e.radius * 0.96, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#39ff14';
+      ctx.lineWidth = 4;
+      ctx.stroke();
 
-      ctx.beginPath();
-      ctx.moveTo(e.radius * 0.5, e.radius * 0.8);
-      ctx.lineTo(e.radius * 1.1, e.radius * 1.3);
-      ctx.lineTo(e.radius * 0.2, e.radius * 0.5);
-      ctx.fill();
+      // Segmented rear plates.
+      ctx.fillStyle = '#14532d';
+      for (let i = 0; i < 3; i++) {
+        const y = -e.radius * 0.56 + i * e.radius * 0.56;
+        ctx.fillRect(-e.radius * 0.62, y - 5, e.radius * 1.24, 10);
+      }
 
-      // Fanged Maw with Dripping Venom
+      // Side legs: angular but kept close to the round silhouette.
+      ctx.strokeStyle = '#166534';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'square';
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < 3; i++) {
+          const y = -e.radius * 0.5 + i * e.radius * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(side * e.radius * 0.68, y);
+          ctx.lineTo(side * e.radius * 1.02, y + side * 8);
+          ctx.lineTo(side * e.radius * 1.15, y - side * 4);
+          ctx.stroke();
+        }
+      }
+
+      // Head plate.
       ctx.fillStyle = '#052e16';
-      ctx.fillRect(e.radius - 12, -10, 14, 20);
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(e.radius - 4, -8, 6, 4);
-      ctx.fillRect(e.radius - 4, 4, 6, 4);
+      ctx.beginPath();
+      ctx.arc(0, -e.radius * 0.25, e.radius * 0.55, Math.PI, Math.PI * 2);
+      ctx.fill();
 
-      // Multiple Glowing Ruby Eyes
+      // Four menacing eyes.
       ctx.fillStyle = '#39ff14';
-      [-6, 0, 6].forEach(ey => {
-        ctx.fillRect(e.radius - 14, ey - 2, 4, 4);
-      });
+      for (const x of [-16, -5, 5, 16]) {
+        ctx.fillRect(x - 3, -e.radius * 0.32, 6, 5);
+      }
+
+      // Central maw and angular mandibles.
+      ctx.fillStyle = '#020b05';
+      ctx.fillRect(-e.radius * 0.22, e.radius * 0.03, e.radius * 0.44, e.radius * 0.30);
+      ctx.fillStyle = '#ff0055';
+      ctx.fillRect(-e.radius * 0.14, e.radius * 0.08, 7, 5);
+      ctx.fillRect(e.radius * 0.14 - 7, e.radius * 0.08, 7, 5);
+
+      ctx.fillStyle = '#a7f3d0';
+      ctx.beginPath();
+      ctx.moveTo(-e.radius * 0.18, e.radius * 0.28);
+      ctx.lineTo(-e.radius * 0.08, e.radius * 0.48);
+      ctx.lineTo(-e.radius * 0.01, e.radius * 0.28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(e.radius * 0.18, e.radius * 0.28);
+      ctx.lineTo(e.radius * 0.08, e.radius * 0.48);
+      ctx.lineTo(e.radius * 0.01, e.radius * 0.28);
+      ctx.closePath();
+      ctx.fill();
+
+      // Short antennae preserve the round body while making the insect identity obvious.
+      ctx.strokeStyle = '#166534';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-e.radius * 0.28, -e.radius * 0.65);
+      ctx.lineTo(-e.radius * 0.52, -e.radius * 0.94);
+      ctx.lineTo(-e.radius * 0.38, -e.radius * 1.02);
+      ctx.moveTo(e.radius * 0.28, -e.radius * 0.65);
+      ctx.lineTo(e.radius * 0.52, -e.radius * 0.94);
+      ctx.lineTo(e.radius * 0.38, -e.radius * 1.02);
+      ctx.stroke();
+
+      ctx.restore();
     } else if (e instanceof BossTitan) {
       // Sector 2 Boss: Titan Autômato MK-IV
       ctx.fillStyle = '#0f172a';

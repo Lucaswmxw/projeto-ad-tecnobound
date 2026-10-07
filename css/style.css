@@ -947,7 +947,27 @@ html, body {
   color: #52677b;
 }
 @media (max-width: 600px) {
-  .start-shell { padding: 28px 18px 22px; }
-  .start-brief { grid-template-columns: repeat(2, 1fr); margin: 20px 0 18px; }
-  .start-footer { letter-spacing: 1px; }
+  .start-shell {
+    width: calc(100vw - 20px);
+    max-height: calc(100svh - 20px);
+    overflow-y: auto;
+    padding: 24px 14px 18px;
+  }
+  .start-kicker { font-size: 7px; letter-spacing: 2px; }
+  .start-shell h1 { font-size: clamp(30px, 11vw, 48px); letter-spacing: 5px; }
+  .start-subtitle { font-size: 8px; line-height: 1.45; }
+  .start-brief { grid-template-columns: repeat(2, 1fr); margin: 18px 0 16px; gap: 5px; }
+  .start-brief div { padding: 7px 4px; }
+  .start-button { min-width: 0; width: min(210px, 78vw); }
+  .start-footer { letter-spacing: 1px; line-height: 1.5; }
+}
+
+@media (max-width: 360px) {
+  .start-shell { padding: 20px 10px 14px; }
+  .start-shell h1 { letter-spacing: 3px; }
+  .start-brief { margin: 14px 0 12px; }
+  .start-brief strong { font-size: 9px; }
+  .start-brief span { font-size: 7px; }
+  .start-button { font-size: 11px; padding: 10px 16px; }
+  .start-footer { font-size: 7px; }
 }
