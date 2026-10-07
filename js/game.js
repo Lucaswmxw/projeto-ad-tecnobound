@@ -1670,7 +1670,7 @@ class Game {
       const dx = this.player.x - enemy.x;
       const dy = this.player.y - enemy.y;
       const dist = Math.hypot(dx, dy);
-      const minDist = this.player.radius + enemy.radius;
+      const minDist = this.player.radius + (enemy.hitRadius ?? enemy.radius);
 
       if (dist < minDist) {
         // VÓRTICE contact is fatal: the singularity consumes the player immediately.

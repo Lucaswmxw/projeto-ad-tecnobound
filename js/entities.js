@@ -12,6 +12,9 @@ class Entity {
     this.vx = 0;
     this.vy = 0;
     this.radius = radius;
+    // Collision radius is gameplay-only and must never be used for rendering.
+    // Keeping it separate prevents the enemy hitbox from visually covering the sprite.
+    this.hitRadius = Math.max(4, radius * 0.78);
     this.faction = faction;
     this.maxHp = 10;
     this.hp = 10;
@@ -378,7 +381,7 @@ class Projectile {
 
         hit = axisCheck(prevX, dx, minX, maxX) && axisCheck(prevY, dy, minY, maxY);
       } else {
-        const hitRadius = this.radius + (target.radius || 0);
+        const hitRadius = this.radius + (target.hitRadius ?? target.radius ?? 0);
         const hitRadiusSq = hitRadius * hitRadius;
         const distanceSq = segmentPointDistanceSq(
           prevX, prevY, this.x, this.y, target.x, target.y
