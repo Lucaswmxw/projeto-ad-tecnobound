@@ -326,13 +326,43 @@ class Projectile {
       if (!target || target.dead || !window.areHostile(this, target)) continue;
       if (this.hitTargets.has(target)) continue;
 
-      const hitRadius = this.radius + (target.radius || 0);
-      const hitRadiusSq = hitRadius * hitRadius;
-      const distanceSq = segmentPointDistanceSq(
-        prevX, prevY, this.x, this.y, target.x, target.y
-      );
+      // Player projectiles use a swept AABB test because the player is a square,
+      // not a circle. This also fixes fast hostile projectiles tunneling through
+      // the corners/edges of the player between frames.
+      let hit = false;
+      if (target === player) {
+        const half = Number.isFinite(player.halfSize) ? player.halfSize : (player.radius || 16);
+        const minX = target.x - half - this.radius;
+        const maxX = target.x + half + this.radius;
+        const minY = target.y - half - this.radius;
+        const maxY = target.y + half + this.radius;
 
-      if (distanceSq < hitRadiusSq) {
+        // Segment vs expanded player AABB using slab intersection.
+        const dx = this.x - prevX;
+        const dy = this.y - prevY;
+        let tMin = 0;
+        let tMax = 1;
+        const axisCheck = (start, delta, min, max) => {
+          if (Math.abs(delta) < 0.000001) return start >= min && start <= max;
+          let t1 = (min - start) / delta;
+          let t2 = (max - start) / delta;
+          if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+          tMin = Math.max(tMin, t1);
+          tMax = Math.min(tMax, t2);
+          return tMin <= tMax;
+        };
+
+        hit = axisCheck(prevX, dx, minX, maxX) && axisCheck(prevY, dy, minY, maxY);
+      } else {
+        const hitRadius = this.radius + (target.radius || 0);
+        const hitRadiusSq = hitRadius * hitRadius;
+        const distanceSq = segmentPointDistanceSq(
+          prevX, prevY, this.x, this.y, target.x, target.y
+        );
+        hit = distanceSq < hitRadiusSq;
+      }
+
+      if (hit) {
         // Register before side effects to prevent recursive/re-entrant hits.
         this.hitTargets.add(target);
         const hit = target.takeDamage(this.damage, this.owner);
@@ -1330,15 +1360,22 @@ class Player extends Entity {
     };
 
     // Base Hitbox & Mutation Sizing
+    // The player uses a square hitbox to match the original visual/gameplay identity.
+    // radius is kept for legacy systems, while halfSize is the authoritative player
+    // collision extent for projectile and contact checks.
     this.baseRadius = 16;
+    this.baseHalfSize = 16;
     this.radius = 16;
+    this.halfSize = 16;
     this.updateHitbox();
   }
 
   updateHitbox() {
-    // symbioticTentacle drawback: increases player collision area / hitbox by ~15%
+    // Symbiotic Tentacle drawback increases the square hitbox by ~15%.
     const mult = this.mutations.symbioticTentacle ? 1.15 : 1.0;
-    this.radius = Math.round(this.baseRadius * mult * 10) / 10;
+    this.halfSize = Math.round(this.baseHalfSize * mult * 10) / 10;
+    // Keep radius-compatible systems conservative; projectile-vs-player uses halfSize.
+    this.radius = this.halfSize;
   }
 
   addMutation(mutationId) {

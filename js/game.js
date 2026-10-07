@@ -1083,9 +1083,8 @@ const PixelArt = {
     // Flash white on damage
     if (player.flashTimer > 0) {
       ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-      ctx.fill();
+      const flashHalf = player.halfSize || player.radius || 16;
+      ctx.fillRect(-flashHalf, -flashHalf, flashHalf * 2, flashHalf * 2);
       ctx.restore();
       return;
     }
@@ -1094,14 +1093,11 @@ const PixelArt = {
     if (player.isDashing || player.invulnTimer > 0) {
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, player.radius + 5, 0, Math.PI * 2);
-      ctx.stroke();
+      const auraHalf = (player.halfSize || player.radius || 16) + 5;
+      ctx.strokeRect(-auraHalf, -auraHalf, auraHalf * 2, auraHalf * 2);
 
       ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
-      ctx.beginPath();
-      ctx.arc(0, 0, player.radius + 5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(-auraHalf, -auraHalf, auraHalf * 2, auraHalf * 2);
     }
 
     // Directional orientation according to weapon aim
@@ -1138,13 +1134,12 @@ const PixelArt = {
     }
 
     // 3. Player Exo-Suit Armored Torso
+    const bodyHalf = (player.halfSize || player.radius || 16) * 0.9;
     ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.arc(0, 0, player.radius * 0.9, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(-bodyHalf, -bodyHalf, bodyHalf * 2, bodyHalf * 2);
     ctx.strokeStyle = '#0284c7';
     ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.strokeRect(-bodyHalf, -bodyHalf, bodyHalf * 2, bodyHalf * 2);
 
     // Heavy Pauldrons
     ctx.fillStyle = '#1e293b';
