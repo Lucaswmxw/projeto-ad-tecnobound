@@ -711,57 +711,157 @@ const PixelArt = {
       ctx.stroke();
     }
 
-    // Sector 1: Aliens
+    // REGULAR ENEMIES — detailed pixel-art silhouettes.
+    // IMPORTANT: collision hitboxes are stored separately in entities.js and are
+    // never rendered here. These shapes are purely visual.
     if (e instanceof BioSwarmer) {
+      // Bio-Swarmer: small alien insect with shell, eyes and four legs.
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(-8, -9, 16, 18);
       ctx.fillStyle = '#39ff14';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#111';
-      ctx.fillRect(-3, -2, 2, 2);
-      ctx.fillRect(2, -2, 2, 2);
-    } else if (e instanceof BioSpitter) {
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(-3, -3, 6, 6);
-    } else if (e instanceof BioBrood) {
-      ctx.fillStyle = '#15803d';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(-6, -7, 12, 14);
+      ctx.fillRect(-9, -4, 4, 8);
+      ctx.fillRect(5, -4, 4, 8);
+      ctx.fillStyle = '#052e16';
+      ctx.fillRect(-4, -3, 3, 3);
+      ctx.fillRect(2, -3, 3, 3);
       ctx.fillStyle = '#86efac';
-      ctx.fillRect(-6, -6, 12, 12);
-    }
-    // Sector 2: Robots
-    else if (e instanceof RoboDrone) {
+      ctx.fillRect(-2, 3, 4, 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(-11, -7, 3, 2);
+      ctx.fillRect(8, -7, 3, 2);
+      ctx.fillRect(-11, 5, 3, 2);
+      ctx.fillRect(8, 5, 3, 2);
+    } else if (e instanceof BioSpitter) {
+      // Bio-Spitter: squat alien with armored plates, central mouth and side sacs.
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(-12, -10, 24, 20);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(-9, -12, 18, 24);
+      ctx.fillRect(-13, -5, 4, 10);
+      ctx.fillRect(9, -5, 4, 10);
+      ctx.fillStyle = '#052e16';
+      ctx.fillRect(-6, -7, 4, 3);
+      ctx.fillRect(2, -7, 4, 3);
+      ctx.fillStyle = '#ff0055';
+      ctx.fillRect(-5, -1, 10, 7);
+      ctx.fillStyle = '#fecdd3';
+      ctx.fillRect(-2, 0, 4, 2);
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(-6, 8, 4, 3);
+      ctx.fillRect(2, 8, 4, 3);
+    } else if (e instanceof BioBrood) {
+      // Bio-Brood: large armored brood creature with shell segments and core.
+      ctx.fillStyle = '#064e3b';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(-15, -12, 30, 24);
+      ctx.fillRect(-11, -16, 22, 32);
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(-20, -6, 5, 12);
+      ctx.fillRect(15, -6, 5, 12);
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(-7, -8, 14, 16);
+      ctx.fillStyle = '#052e16';
+      ctx.fillRect(-4, -4, 8, 8);
+      ctx.fillStyle = '#39ff14';
+      ctx.fillRect(-2, -2, 4, 4);
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(-13, -15, 5, 4);
+      ctx.fillRect(8, -15, 5, 4);
+      ctx.fillRect(-13, 11, 5, 4);
+      ctx.fillRect(8, 11, 5, 4);
+    } else if (e instanceof RoboDrone) {
+      // Robo-Drone: floating combat drone with frame, sensor, thrusters and fins.
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(-12, -12, 24, 24);
       ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
-      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
+      ctx.fillRect(-9, -9, 18, 18);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-15, -5, 4, 10);
+      ctx.fillRect(11, -5, 4, 10);
+      ctx.fillRect(-5, -15, 10, 4);
+      ctx.fillRect(-5, 11, 10, 4);
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(-6, -6, 12, 12);
+      ctx.fillStyle = e.isHacked ? '#ffffff' : '#ff8aa8';
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(-4, -17, 8, 2);
+      ctx.fillRect(-4, 15, 8, 2);
+    } else if (e instanceof RoboSentry) {
+      // Robo-Sentry: stationary turret with reinforced chassis and twin barrels.
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-15, -15, 30, 30);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(-12, -12, 24, 24);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-18, -9, 6, 18);
+      ctx.fillRect(12, -9, 6, 18);
+      ctx.fillRect(-8, -18, 16, 5);
+      ctx.fillRect(-8, 13, 16, 5);
+      ctx.strokeStyle = e.isHacked ? '#00f0ff' : '#ff0055';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-12, -12, 24, 24);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-6, -6, 12, 12);
+      ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(8, -11, 10, 4);
+      ctx.fillRect(8, 7, 10, 4);
+    } else if (e instanceof RoboRoller) {
+      // Robo-Roller: armored rolling chassis with visible treads and front core.
+      ctx.fillStyle = '#0c4a6e';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(-13, -10, 26, 20);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(-16, -7, 5, 14);
+      ctx.fillRect(11, -7, 5, 14);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(-8, -6, 16, 12);
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(-4, -4, 8, 8);
-    } else if (e instanceof RoboSentry) {
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
-      ctx.strokeStyle = e.isHacked ? '#00f0ff' : '#ff0055';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
-    } else if (e instanceof RoboRoller) {
-      ctx.fillStyle = '#0369a1';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, -3, 3, 6);
+      ctx.strokeStyle = '#bae6fd';
       ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-    // Sector 3: Void
-    else if (e instanceof VoidPhantom) {
-      ctx.fillStyle = '#bf55ec';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.strokeRect(-13, -10, 26, 20);
+    } else if (e instanceof VoidPhantom) {
+      // Void Phantom: spectral entity with hooded body, tendrils and central eye.
       ctx.fillStyle = '#4a044e';
-      ctx.fillRect(-4, -4, 8, 8);
+      ctx.beginPath();
+      ctx.moveTo(-12, -10);
+      ctx.lineTo(-5, -17);
+      ctx.lineTo(5, -17);
+      ctx.lineTo(12, -10);
+      ctx.lineTo(15, 9);
+      ctx.lineTo(8, 14);
+      ctx.lineTo(3, 11);
+      ctx.lineTo(0, 17);
+      ctx.lineTo(-4, 11);
+      ctx.lineTo(-10, 14);
+      ctx.lineTo(-15, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#bf55ec';
+      ctx.fillRect(-9, -8, 18, 16);
+      ctx.fillRect(-12, -3, 4, 9);
+      ctx.fillRect(8, -3, 4, 9);
+      ctx.fillStyle = '#17051b';
+      ctx.fillRect(-7, -4, 14, 10);
+      ctx.fillStyle = '#e879f9';
+      ctx.fillRect(-3, -2, 6, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-1, -1, 2, 2);
+      ctx.fillStyle = '#7e22ce';
+      ctx.fillRect(-13, 9, 5, 3);
+      ctx.fillRect(8, 9, 5, 3);
     }
 
     // SECRET BOSS: O VÓRTICE
