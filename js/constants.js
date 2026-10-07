@@ -308,6 +308,13 @@ const CONSTANTS = {
       boon: 'Eliminar inimigos no combate restaura 1 ponto de vitalidade (HP).',
       drawback: 'Pacotes médicos comuns coletados fornecem apenas 50% de cura.'
     }
+    ,{
+      id: 'voidbound',
+      name: 'Voidbound',
+      iconKey: 'mutation_void',
+      boon: 'junte-se ao void, e seus chamados serão atendidos.',
+      drawback: ''
+    }
   ]
 };
 
@@ -531,6 +538,13 @@ const Icons = {
   mutation_vampire() {
     return `<svg class="svg-icon" viewBox="0 0 16 16" style="color: #ff2a5f;">
       <path fill="currentColor" d="M8 1 C 4 6 3 9 3 11 a5 5 0 0 0 10 0 C 13 9 12 6 8 1 Z"/>
+    </svg>`;
+  },
+
+  mutation_void() {
+    return `<svg class="svg-icon" viewBox="0 0 16 16" style="color: #d8d8e8;">
+      <circle cx="8" cy="8" r="6" fill="#000000" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M2 8 C5 4 8 5 10 8 C12 11 14 9 15 7" fill="none" stroke="currentColor" stroke-width="1"/>
     </svg>`;
   },
 

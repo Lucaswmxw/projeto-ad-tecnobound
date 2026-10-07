@@ -16,6 +16,8 @@ class SoundEngine {
     this.lastHitSfxTime = 0;
     this.activeSfx = 0;
     this.maxActiveSfx = 32;
+    this.vortexAmbientInterval = null;
+    this.vortexRoomActive = false;
   }
 
   init() {
@@ -95,6 +97,18 @@ class SoundEngine {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.21);
+    } else if (type === 'void') {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(95, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.28);
+      gain.gain.setValueAtTime(this.sfxVolume * 0.42, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.29);
     } else if (type === 'lightning') {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -263,6 +277,196 @@ class SoundEngine {
     gain.connect(this.ctx.destination);
     osc.start(now);
     osc.stop(now + 0.17);
+  }
+
+  playGoldenJingle() {
+    if (this.sfxMuted || !this.ctx) return;
+    try {
+      this.ensureContext();
+      const now = this.ctx.currentTime;
+      // Very short 8-bit sci-fi discovery jingle: bright, mysterious, and
+      // intentionally compact so it never overwhelms the combat soundtrack.
+      const notes = [
+        { f: 660, t: 0.00, d: 0.055 },
+        { f: 990, t: 0.055, d: 0.055 },
+        { f: 1320, t: 0.11, d: 0.09 }
+      ];
+      notes.forEach((note, index) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = index === 2 ? 'square' : 'triangle';
+        osc.frequency.setValueAtTime(note.f, now + note.t);
+        gain.gain.setValueAtTime(0.0001, now + note.t);
+        gain.gain.exponentialRampToValueAtTime(this.sfxVolume * 0.28, now + note.t + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + note.t + note.d);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + note.t);
+        osc.stop(now + note.t + note.d + 0.01);
+      });
+    } catch (e) {
+      // Easter-egg audio is cosmetic; never let Web Audio affect gameplay.
+    }
+  }
+
+  playVortexAbsorb() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(70, now);
+    osc.frequency.exponentialRampToValueAtTime(420, now + 0.45);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 0.56);
+  }
+
+  playVortexMinions() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 0.36);
+  }
+
+  playVortexSpiral() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(48, now + 0.5);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.24, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 0.51);
+  }
+
+  playVortexTeleport() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(75, now + 0.12);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.32, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 0.14);
+  }
+
+  playVortexDeath() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(190, now);
+    osc.frequency.exponentialRampToValueAtTime(22, now + 1.5);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.34, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 1.52);
+  }
+
+  playVortexReward() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    [110, 165, 220].forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now + i * 0.09);
+      gain.gain.setValueAtTime(this.sfxVolume * 0.18, now + i * 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.09 + 0.32);
+      osc.connect(gain); gain.connect(this.ctx.destination);
+      osc.start(now + i * 0.09); osc.stop(now + i * 0.09 + 0.33);
+    });
+  }
+
+  playVortexSpawn() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(52, now);
+    osc.frequency.exponentialRampToValueAtTime(115, now + 0.75);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.85);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 0.88);
+  }
+
+  playVortexConsume() {
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(170, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.7);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.008, now + 0.75);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + 0.78);
+  }
+
+  enterVortexRoom() {
+    this.stopMusic();
+    this.vortexRoomActive = true;
+    if (this.sfxMuted || !this.ctx) return;
+    this.ensureContext();
+    if (this.vortexAmbientInterval) clearInterval(this.vortexAmbientInterval);
+    const playPulse = () => {
+      if (!this.vortexRoomActive || this.sfxMuted || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(34 + Math.random() * 10, now);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(170, now);
+      gain.gain.setValueAtTime(this.sfxVolume * 0.075, now);
+      gain.gain.exponentialRampToValueAtTime(0.006, now + 1.2);
+      osc.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+      osc.start(now); osc.stop(now + 1.22);
+    };
+    playPulse();
+    this.vortexAmbientInterval = setInterval(playPulse, 1400);
+  }
+
+  exitVortexRoom(theme) {
+    if (!this.vortexRoomActive) {
+      if (theme && !this.musicMuted && !this.musicInterval) this.setMusicTheme(theme);
+      return;
+    }
+    this.vortexRoomActive = false;
+    if (this.vortexAmbientInterval) clearInterval(this.vortexAmbientInterval);
+    this.vortexAmbientInterval = null;
+    if (theme) {
+      this.currentTheme = theme;
+      if (!this.musicMuted) this.startMusic();
+    }
   }
 
   playBossAlarm() {

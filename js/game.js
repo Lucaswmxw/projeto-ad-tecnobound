@@ -476,6 +476,19 @@ const PixelArt = {
     ctx.lineWidth = 2;
     ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
 
+    if (theme === 'vortex') {
+      // The secret room door is intentionally almost lightless.
+      ctx.fillStyle = '#010105';
+      ctx.fillRect(-dw / 2 + 2, -dh / 2 + 2, dw - 4, dh - 4);
+      ctx.strokeStyle = '#171722';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-dw / 2 + 2, -dh / 2 + 2, dw - 4, dh - 4);
+      ctx.fillStyle = '#0b0b12';
+      ctx.fillRect(-Math.min(dw, dh) * 0.18, -Math.min(dw, dh) * 0.18, Math.min(dw, dh) * 0.36, Math.min(dw, dh) * 0.36);
+      ctx.restore();
+      return;
+    }
+
     if (locked) {
       // Locked Blast Door: Crimson laser grid and hazard chevrons
       ctx.fillStyle = '#55081c';
@@ -917,6 +930,78 @@ const PixelArt = {
       ctx.arc(-e.radius * 0.6, 0, e.radius * 0.5, 0, Math.PI);
       ctx.stroke();
     }
+    // SECRET BOSS: O VÓRTICE
+    else if (e instanceof BossVortex) {
+      const appear = e.spawning ? Math.max(0.02, e.spawnProgress) : 1;
+      ctx.globalAlpha = appear;
+      const pulse = 1 + Math.sin(performance.now() * 0.004) * 0.035;
+      const r = e.radius * appear * pulse;
+
+      // Slow, rotating black spiral aura. During spawn it accelerates gradually.
+      ctx.save();
+      ctx.rotate(e.spiralAngle);
+      ctx.strokeStyle = '#09090f';
+      ctx.lineWidth = 7;
+      ctx.globalAlpha = 0.82 * appear;
+      for (let arm = 0; arm < 3; arm++) {
+        ctx.save();
+        ctx.rotate(arm * Math.PI * 2 / 3);
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 16, 0.2, Math.PI * 1.42);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+
+      ctx.globalAlpha = appear;
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#11111a';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      if (e.spawning) {
+        ctx.globalAlpha = 0.25 + appear * 0.55;
+        ctx.strokeStyle = '#151522';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius * (0.55 + appear * 0.65), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Golden enemy Easter egg: preserve the original pixel-art silhouette,
+    // then tint only its opaque pixels. This keeps every enemy recognizable
+    // while making the variant clearly special.
+    if (e.isGolden && !e.isBoss) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.globalAlpha = 0.82;
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(-e.radius * 2.2, -e.radius * 2.2, e.radius * 4.4, e.radius * 4.4);
+      ctx.restore();
+
+      // Small animated sparkle particles: visual only, no gameplay objects.
+      const t = performance.now() * 0.004;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#fff7a8';
+      ctx.shadowColor = '#facc15';
+      ctx.shadowBlur = 7;
+      for (let i = 0; i < 3; i++) {
+        const a = t + i * (Math.PI * 2 / 3);
+        const r = e.radius + 4 + Math.sin(t * 1.7 + i) * 3;
+        const sx = Math.cos(a) * r;
+        const sy = Math.sin(a) * r;
+        const s = 2 + (i === 0 ? 1 : 0);
+        ctx.fillRect(Math.round(sx - s / 2), Math.round(sy - s / 2), s, s);
+      }
+      ctx.restore();
+    }
+
     // ==========================================
     // BOSSES
     // ==========================================
@@ -1267,6 +1352,22 @@ const PixelArt = {
       ctx.fillRect(-2, -8, 4, 3);
       ctx.fillStyle = '#38bdf8';
       ctx.fillRect(-3, -2, 6, 4);
+    } else if (p.type === 'mutation_void') {
+      // Unique Voidbound mutation: a tiny event horizon with a rotating ring.
+      const pulse = 1 + Math.sin(performance.now() * 0.008) * 0.12;
+      ctx.strokeStyle = '#d8d8e8';
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 9 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#252532';
+      ctx.stroke();
     } else if (p.type === 'module_item') {
       // Cybernetic Module Component Cube
       ctx.fillStyle = '#581c87';
@@ -1298,6 +1399,7 @@ class Game {
     this.canvas.height = this.height;
 
     this.currentSectorIndex = 0;
+    this.vortexSecretSector = null;
     this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
     this.dungeon = null;
     this.player = null;
@@ -1398,6 +1500,9 @@ class Game {
 
   startNewRun() {
     this.currentSectorIndex = 0;
+    // One 20% roll per complete run. If successful, choose one eligible
+    // sector (1, 2 or 4); Sector 3 is permanently excluded by design.
+    this.vortexSecretSector = Math.random() < 0.20 ? [1, 2, 4][Math.floor(Math.random() * 3)] : null;
     this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
     this.player = new Player(this.width / 2, this.height / 2, this);
     this.loadSector(this.currentSectorIndex);
@@ -1413,7 +1518,7 @@ class Game {
   loadSector(index) {
     this.currentSectorIndex = index;
     this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
-    this.dungeon = new Dungeon(this.sector);
+    this.dungeon = new Dungeon(this.sector, this.vortexSecretSector);
     this.particles = [];
 
     this.player.x = this.width / 2;
@@ -1494,6 +1599,12 @@ class Game {
     }
   }
 
+  updateRoomAudio(room) {
+    if (!window.soundEngine) return;
+    if (room?.type === 'VORTEX') window.soundEngine.enterVortexRoom();
+    else window.soundEngine.exitVortexRoom(this.sector?.ambientMusic);
+  }
+
   initiateTransition(dx, dy, targetX, targetY) {
     const cur = this.dungeon.currentRoom;
     const next = this.dungeon.getRoom(cur.gx + dx, cur.gy + dy);
@@ -1522,6 +1633,7 @@ class Game {
 
       this.dungeon.currentRoom = this.nextRoom;
       this.dungeon.currentRoom.visited = true;
+      this.updateRoomAudio(this.dungeon.currentRoom);
 
       // Safe placement beyond door sensor
       this.player.x = this.targetPlayerPos.x;
@@ -1571,6 +1683,21 @@ class Game {
 
     PixelArt.drawFloor(ctx, room, W, H, T);
 
+    // Secret VÓRTICE room: suppress the normal sector palette with a near-black
+    // singularity chamber while preserving the existing wall geometry.
+    if (room.type === 'VORTEX') {
+      ctx.fillStyle = '#010104';
+      ctx.fillRect(T, T, W - 2 * T, H - 2 * T);
+      ctx.strokeStyle = '#090914';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 6; i++) {
+        const rr = 70 + i * 42;
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, rr, 0.15 + i * 0.4, 2.7 + i * 0.4);
+        ctx.stroke();
+      }
+    }
+
     // Hazards
     if (room.hazards) {
       room.hazards.forEach(haz => {
@@ -1584,10 +1711,11 @@ class Game {
     PixelArt.drawWalls(ctx, room, W, H, T);
 
     const isLocked = room.doorsLocked;
-    if (room.doors.north) PixelArt.drawDoor(ctx, W / 2, T / 2, 'north', !isLocked, isLocked, room.sector.theme);
-    if (room.doors.south) PixelArt.drawDoor(ctx, W / 2, H - T / 2, 'south', !isLocked, isLocked, room.sector.theme);
-    if (room.doors.west) PixelArt.drawDoor(ctx, T / 2, H / 2, 'west', !isLocked, isLocked, room.sector.theme);
-    if (room.doors.east) PixelArt.drawDoor(ctx, W - T / 2, H / 2, 'east', !isLocked, isLocked, room.sector.theme);
+    const doorTheme = room.type === 'VORTEX' ? 'vortex' : room.sector.theme;
+    if (room.doors.north) PixelArt.drawDoor(ctx, W / 2, T / 2, 'north', !isLocked, isLocked, doorTheme);
+    if (room.doors.south) PixelArt.drawDoor(ctx, W / 2, H - T / 2, 'south', !isLocked, isLocked, doorTheme);
+    if (room.doors.west) PixelArt.drawDoor(ctx, T / 2, H / 2, 'west', !isLocked, isLocked, doorTheme);
+    if (room.doors.east) PixelArt.drawDoor(ctx, W - T / 2, H / 2, 'east', !isLocked, isLocked, doorTheme);
 
     if (room.obstacles) {
       room.obstacles.forEach(obs => PixelArt.drawObstacle(ctx, obs, room.sector.theme));
@@ -1624,6 +1752,32 @@ class Game {
       ctx.restore();
     }
 
+    if (room.vortexDefeatEffect) {
+      const fx = room.vortexDefeatEffect;
+      const t = Math.max(0, Math.min(1, fx.elapsed / fx.duration));
+      const spin = fx.elapsed * 13;
+      const radius = Math.max(4, fx.startRadius * (1 - t));
+      ctx.save();
+      ctx.translate(fx.x, fx.y);
+      ctx.rotate(spin);
+      ctx.globalAlpha = 1 - t;
+      for (let arm = 0; arm < 3; arm++) {
+        ctx.save();
+        ctx.rotate(arm * Math.PI * 2 / 3);
+        ctx.strokeStyle = '#050509';
+        ctx.lineWidth = Math.max(2, 7 * (1 - t));
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 1.7, 0.15, Math.PI * 1.45);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     if (room.pickups) {
       room.pickups.forEach(p => PixelArt.drawPickup(ctx, p));
     }
@@ -1634,10 +1788,38 @@ class Game {
 
     if (room.projectiles) {
       room.projectiles.forEach(proj => {
-        ctx.fillStyle = proj.color;
-        ctx.beginPath();
-        ctx.arc(Math.round(proj.x), Math.round(proj.y), proj.radius, 0, Math.PI * 2);
-        ctx.fill();
+        if (proj.type === 'voidblackhole') {
+          const pulse = 1 + Math.sin(performance.now() * 0.01) * 0.10;
+          ctx.save();
+          ctx.translate(Math.round(proj.x), Math.round(proj.y));
+          ctx.strokeStyle = '#d8d8e8';
+          ctx.globalAlpha = 0.42;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, proj.radius * 1.7 * pulse, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(0, 0, proj.radius * pulse, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else if (proj.type === 'void_spiral') {
+          ctx.save();
+          ctx.translate(Math.round(proj.x), Math.round(proj.y));
+          ctx.rotate(Math.atan2(proj.vy, proj.vx));
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(-10, -5, 20, 10);
+          ctx.strokeStyle = '#171722';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-10, -5, 20, 10);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = proj.color;
+          ctx.beginPath();
+          ctx.arc(Math.round(proj.x), Math.round(proj.y), proj.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
     }
 
@@ -1658,6 +1840,20 @@ class Game {
       const minDist = this.player.radius + enemy.radius;
 
       if (dist < minDist) {
+        // VÓRTICE contact is fatal: the singularity consumes the player immediately.
+        if (enemy instanceof BossVortex && !enemy.spawning && window.areHostile(this.player, enemy) && !this.player.dead) {
+          const game = this;
+          this.player.hp = 0;
+          this.player.dead = true;
+          this.player.vx = 0;
+          this.player.vy = 0;
+          if (window.soundEngine) window.soundEngine.playVortexConsume();
+          this.addParticle(new Shockwave(this.player.x, this.player.y, 85, '#050509', 0.5));
+          this.addParticle(new FloatingText(this.player.x, this.player.y - 25, 'ABSORVIDO PELO VOID', '#d8d8e8', 1.1));
+          this.player.onDeath(enemy);
+          continue;
+        }
+
         // Safe angle preventing division by zero
         const angle = dist > 0.001 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2;
         const overlap = minDist - Math.max(dist, 0.001);
@@ -1912,6 +2108,15 @@ class Game {
     }
   }
 
+  grantVortexMutation() {
+    const room = this.dungeon?.currentRoom;
+    if (!room || !this.player || this.player.mutations.voidbound) return;
+    // The mutation physically appears as a rare pickup after the VÓRTICE fades.
+    room.pickups.push({ x: this.width / 2, y: this.height / 2, type: 'mutation_void', amount: 1, size: 11 });
+    this.addParticle(new Shockwave(this.width / 2, this.height / 2, 80, '#d8d8e8', 0.8));
+    this.addParticle(new FloatingText(this.width / 2, this.height / 2 - 38, 'VOIDBOUND DESPERTO', '#d8d8e8', 1.8));
+  }
+
   onBossDefeated() {
     const room = this.dungeon?.currentRoom;
     if (!room || room.type !== 'BOSS') return;
@@ -2091,6 +2296,33 @@ class Game {
     // 1. Update Player
     this.player.update(dt, room, this.input);
 
+    // VÓRTICE activation: entering the secret room is initially silent and empty.
+    // The boss only materializes once the player actually moves.
+    if (room.type === 'VORTEX' && room.vortexAwaitingActivation && !room.vortexDefeated) {
+      const moved = Math.abs(this.player.vx) + Math.abs(this.player.vy) > 8;
+      if (moved) {
+        room.vortexAwaitingActivation = false;
+        room.doorsLocked = true;
+        room.spawnEnemies();
+        if (window.soundEngine) window.soundEngine.playVortexSpawn();
+      }
+    }
+
+    // The VÓRTICE exerts a subtle gravitational pull while active.
+    if (room.type === 'VORTEX' && room.enemies) {
+      const vortex = room.enemies.find(e => e instanceof BossVortex && !e.dead);
+      if (vortex && !vortex.spawning && !this.player.dead) {
+        const dx = vortex.x - this.player.x;
+        const dy = vortex.y - this.player.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 0.001 && dist < 250) {
+          const strength = 22 * (1 - dist / 250);
+          this.player.vx += (dx / dist) * strength * dt;
+          this.player.vy += (dy / dist) * strength * dt;
+        }
+      }
+    }
+
     // 2. Update Projectiles (with safety cap against endless accumulation)
     if (room.projectiles) {
       // Hard cap protects the game loop from accidental projectile storms.
@@ -2122,8 +2354,21 @@ class Game {
     this.resolvePlayerEnemyCollisions();
     this.resolveEnemyInteractions(dt, room);
 
+    // Secret VÓRTICE death animation runs before the room is considered cleared.
+    if (room.type === 'VORTEX' && room.vortexDefeatEffect) {
+      room.vortexDefeatEffect.elapsed += dt;
+      if (room.vortexDefeatEffect.elapsed >= room.vortexDefeatEffect.duration) {
+        room.vortexDefeatEffect = null;
+        room.cleared = true;
+        room.doorsLocked = false;
+        room.vortexDefeated = true;
+        room.projectiles = [];
+        this.grantVortexMutation();
+      }
+    }
+
     // 5. Room Cleared Check
-    if (aliveHostiles === 0 && !room.cleared) {
+    if (aliveHostiles === 0 && !room.cleared && !(room.type === 'VORTEX' && (room.vortexDefeatEffect || room.vortexAwaitingActivation))) {
       room.cleared = true;
       room.doorsLocked = false;
       this.player.stats.roomsCleared++;

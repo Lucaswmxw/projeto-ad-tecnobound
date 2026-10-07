@@ -6,7 +6,7 @@ class Room {
   constructor(gx, gy, type = 'COMBAT', sector) {
     this.gx = gx;
     this.gy = gy;
-    this.type = type; // 'START', 'COMBAT', 'TREASURE', 'MUTAGEN', 'FABRICATOR', 'HAZARD', 'BOSS'
+    this.type = type; // 'START', 'COMBAT', 'TREASURE', 'MUTAGEN', 'FABRICATOR', 'HAZARD', 'BOSS', 'VORTEX'
     this.sector = sector;
     this.doors = { north: false, south: false, east: false, west: false };
     this.doorsLocked = false;
@@ -25,6 +25,10 @@ class Room {
     this.vacuumBreach = (sector.hasVacuum || (type === 'HAZARD' && Math.random() < 0.6));
     this.treasureClaimed = false;
     this.mutagenClaimed = false;
+    this.vortexDefeatEffect = null;
+    this.vortexDefeated = false;
+    this.vortexAwaitingActivation = (type === 'VORTEX');
+    if (type === 'VORTEX') this.doorsLocked = true;
 
     this.initLayout();
   }
@@ -86,6 +90,9 @@ class Room {
         { x: W / 2 - 130, y: H - 165, w: 75, h: 45, type: 'shop_heal', bought: false, cost: 15 },
         { x: W / 2 + 55,  y: H - 165, w: 75, h: 45, type: 'shop_o2', bought: false, cost: 10 }
       );
+    } else if (this.type === 'VORTEX') {
+      // Secret Vortex arena: almost-black floor with sparse singularity markings.
+      this.vortexRoom = true;
     } else if (this.type === 'BOSS') {
       // Arena Cover Pillars
       this.obstacles.push(
@@ -119,6 +126,15 @@ class Room {
     const W = CONSTANTS.ROOM_WIDTH;
     const H = CONSTANTS.ROOM_HEIGHT;
 
+    if (this.type === 'VORTEX') {
+      // The secret boss only materializes after the player moves inside the room.
+      if (this.vortexAwaitingActivation || this.vortexDefeated) return;
+      if (!this.enemies.some(e => e && !e.dead)) {
+        this.enemies.push(new BossVortex(W / 2, H / 2));
+      }
+      return;
+    }
+
     if (this.type === 'BOSS') {
       if (this.sector.id === 1) {
         this.enemies.push(new BossGorgon(W / 2, H / 2));
@@ -148,55 +164,70 @@ class Room {
           safeTries++;
         }
 
+        let spawnedEnemy = null;
+
         if (this.sector.id === 1) {
           // Sector 1: Alien Infestation
           const roll = Math.random();
           if (roll < 0.55) {
-            this.enemies.push(new BioSwarmer(ex, ey));
+            spawnedEnemy = new BioSwarmer(ex, ey);
           } else if (roll < 0.85) {
-            this.enemies.push(new BioSpitter(ex, ey));
+            spawnedEnemy = new BioSpitter(ex, ey);
           } else {
-            this.enemies.push(new BioBrood(ex, ey));
+            spawnedEnemy = new BioBrood(ex, ey);
           }
         } else if (this.sector.id === 2) {
           // Sector 2: Automaton Complex
           const roll = Math.random();
           if (roll < 0.45) {
-            this.enemies.push(new RoboDrone(ex, ey));
+            spawnedEnemy = new RoboDrone(ex, ey);
           } else if (roll < 0.75) {
-            this.enemies.push(new RoboSentry(ex, ey));
+            spawnedEnemy = new RoboSentry(ex, ey);
           } else {
-            this.enemies.push(new RoboRoller(ex, ey));
+            spawnedEnemy = new RoboRoller(ex, ey);
           }
         } else if (this.sector.id === 3) {
           // Sector 3: Deep Vacuum & Void Stalkers
           const roll = Math.random();
           if (roll < 0.45) {
-            this.enemies.push(new VoidPhantom(ex, ey));
+            spawnedEnemy = new VoidPhantom(ex, ey);
           } else if (roll < 0.75) {
-            this.enemies.push(new RoboDrone(ex, ey));
+            spawnedEnemy = new RoboDrone(ex, ey);
           } else {
-            this.enemies.push(new BioSpitter(ex, ey));
+            spawnedEnemy = new BioSpitter(ex, ey);
           }
         } else {
           // Sector 4: Ship Core (Inter-faction Warzone)
           const roll = Math.random();
           if (roll < 0.35) {
-            this.enemies.push(new RoboDrone(ex, ey));
+            spawnedEnemy = new RoboDrone(ex, ey);
           } else if (roll < 0.70) {
-            this.enemies.push(new BioSpitter(ex, ey));
+            spawnedEnemy = new BioSpitter(ex, ey);
           } else {
-            this.enemies.push(new VoidPhantom(ex, ey));
+            spawnedEnemy = new VoidPhantom(ex, ey);
           }
         }
+
+        // EASTER EGG: 5% chance for a regular enemy to become GOLDEN.
+        // This runs only in normal combat/hazard rooms, so bosses can never
+        // be replaced by the golden variant. The enemy keeps its original
+        // class, AI, stats and collision behavior.
+        if (spawnedEnemy && Math.random() < 0.05) {
+          spawnedEnemy.isGolden = true;
+          spawnedEnemy.goldenJinglePlayed = false;
+          if (window.soundEngine) window.soundEngine.playGoldenJingle();
+        }
+
+        if (spawnedEnemy) this.enemies.push(spawnedEnemy);
       }
     }
   }
 }
 
 class Dungeon {
-  constructor(sector) {
+  constructor(sector, secretVortexSector = null) {
     this.sector = sector;
+    this.secretVortexSector = secretVortexSector;
     this.gridSize = 7;
     this.rooms = new Map();
     this.startRoom = null;
@@ -339,6 +370,18 @@ class Dungeon {
     // 4. FABRICATOR (Shop) Room: Dead end or candidate
     const shopPos = takeFromPool(deadEnds);
     if (shopPos) reservedPositions.set(`${shopPos.x},${shopPos.y}`, 'FABRICATOR');
+
+    // SECRET EASTER EGG: 20% chance per eligible run to create one VÓRTICE room.
+    // It is never generated in Sector 3 (Vacuum), and it replaces only a normal
+    // room so all mandatory progression rooms remain untouched.
+    const vortexEligible = this.sector.id !== 3 && this.secretVortexSector === this.sector.id;
+    if (vortexEligible) {
+      const vortexCandidates = candidatePool.filter(p => !reservedPositions.has(`${p.x},${p.y}`));
+      if (vortexCandidates.length > 0) {
+        const vortexPos = vortexCandidates[Math.floor(Math.random() * vortexCandidates.length)];
+        reservedPositions.set(`${vortexPos.x},${vortexPos.y}`, 'VORTEX');
+      }
+    }
 
     // Step 4: Instantiate All Rooms
     positions.forEach(p => {

@@ -200,8 +200,8 @@ class Projectile {
     this.damage = damage;
     this.type = type; // 'plasma', 'scatter', 'rail', 'missile', 'lightning'
     this.color = color;
-    this.radius = type === 'missile' ? 6 : (type === 'rail' ? 4 : 5);
-    this.life = type === 'rail' ? 1.0 : (type === 'scatter' ? 0.45 : 2.5);
+    this.radius = type === 'voidblackhole' ? 7 : (type === 'missile' ? 6 : (type === 'rail' ? 4 : 5));
+    this.life = type === 'voidblackhole' ? 4.0 : (type === 'rail' ? 1.0 : (type === 'scatter' ? 0.45 : 2.5));
     this.maxLife = this.life;
     this.dead = false;
     this.pierce = false;
@@ -211,10 +211,34 @@ class Projectile {
     this.leavesAcid = false;
     this.owner = null;
     this.hitTargets = new Set(); // Prevent damaging the same target multiple times
+    this.stuckTarget = null;
+    this.tickTimer = 0;
   }
 
   update(dt, room) {
     if (this.dead) return;
+
+    // VOIDBOUND: once attached, the projectile becomes a tiny orbiting singularity.
+    if (this.type === 'voidblackhole' && this.stuckTarget) {
+      if (this.stuckTarget.dead) {
+        this.dead = true;
+        return;
+      }
+      this.x = this.stuckTarget.x;
+      this.y = this.stuckTarget.y;
+      this.life -= dt;
+      this.tickTimer += dt;
+      if (this.tickTimer >= 0.28) {
+        this.tickTimer = 0;
+        this.stuckTarget.takeDamage(this.damage, this.owner);
+        if (window.gameInstance) {
+          window.gameInstance.addParticle(new Particle(this.x + (Math.random()-0.5)*12, this.y + (Math.random()-0.5)*12, 0, 0, '#d8d8e8', 2, 0.18));
+        }
+      }
+      if (this.life <= 0) this.dead = true;
+      return;
+    }
+
     this.life -= dt;
     if (this.life <= 0) {
       this.dead = true;
@@ -363,6 +387,41 @@ class Projectile {
       }
 
       if (hit) {
+        // VÓRTICE absorption phase: player shots are swallowed by the rotating
+        // aura and returned toward the player as hostile projectiles.
+        if (target instanceof BossVortex && target.absorbing && this.faction === CONSTANTS.FACTIONS.PLAYER) {
+          const playerTarget = window.gameInstance?.player;
+          this.faction = CONSTANTS.FACTIONS.VOID;
+          this.owner = target;
+          this.color = '#050509';
+          this.hitTargets.clear();
+          if (playerTarget) {
+            const a = Math.atan2(playerTarget.y - target.y, playerTarget.x - target.x);
+            const speed = Math.max(300, Math.hypot(this.vx, this.vy) * 0.95);
+            this.x = target.x + Math.cos(a) * (target.radius + 10);
+            this.y = target.y + Math.sin(a) * (target.radius + 10);
+            this.vx = Math.cos(a) * speed;
+            this.vy = Math.sin(a) * speed;
+          }
+          this.life = 2.2;
+          if (window.gameInstance) window.gameInstance.addParticle(new Shockwave(target.x, target.y, 30, '#11111a', 0.18));
+          continue;
+        }
+
+        // VOIDBOUND projectile attaches instead of disappearing on impact.
+        if (this.type === 'voidblackhole' && target !== window.gameInstance?.player) {
+          this.hitTargets.add(target);
+          this.stuckTarget = target;
+          this.x = target.x;
+          this.y = target.y;
+          this.vx = 0;
+          this.vy = 0;
+          this.life = 4.0;
+          this.tickTimer = 0;
+          if (window.gameInstance) window.gameInstance.addParticle(new Shockwave(target.x, target.y, 22, '#d8d8e8', 0.2));
+          break;
+        }
+
         // Register before side effects to prevent recursive/re-entrant hits.
         this.hitTargets.add(target);
         const hit = target.takeDamage(this.damage, this.owner);
@@ -756,6 +815,20 @@ class Enemy extends Entity {
           }
         }
 
+        // GOLDEN ENEMY EASTER EGG: guaranteed special reward.
+        // This is after mutation effects so golden enemies still interact
+        // correctly with the player's existing mutations.
+        if (this.isGolden && !this.isBoss) {
+          const goldenScrap = 10 + Math.floor(Math.random() * 11); // 10-20
+          room.pickups.push({ x: this.x - 16, y: this.y, type: 'scrap', amount: goldenScrap, size: 8 });
+          room.pickups.push({ x: this.x + 16, y: this.y - 4, type: 'o2', amount: 30, size: 8 });
+          room.pickups.push({ x: this.x, y: this.y + 16, type: 'hp', amount: 1, size: 8 });
+          game.addParticle(new FloatingText(this.x, this.y - 28, 'TESOURO DOURADO', '#facc15', 1.2));
+          game.addParticle(new Shockwave(this.x, this.y, 46, '#facc15', 0.4));
+          if (window.soundEngine) window.soundEngine.playPickup('golden');
+          return;
+        }
+
         // Drops
         if (!room) return;
         const dropRoll = Math.random();
@@ -1034,6 +1107,143 @@ class VoidPhantom extends Enemy {
 // ==========================================
 // 6. BOSSES FOR ALL 4 SECTORS
 // ==========================================
+
+// SECRET BOSS: O VÓRTICE — uma singularidade errante encontrada em salas raras.
+class BossVortex extends Enemy {
+  constructor(x, y) {
+    super(x, y, 72, CONSTANTS.FACTIONS.VOID);
+    this.isBoss = true;
+    this.bossName = 'O VÓRTICE';
+    this.maxHp = 560;
+    this.hp = 560;
+    this.speed = 0;
+    this.color = '#000000';
+    this.contactDamage = 3;
+    this.attackInterval = 3.6;
+    this.attackPattern = Math.floor(Math.random() * 4);
+    this.absorbing = false;
+    this.spawning = true;
+    this.spawnTimer = 2.1;
+    this.spawnProgress = 0;
+    this.spiralAngle = 0;
+    this.teleportTimer = 0;
+    this.teleportWarning = 0;
+  }
+
+  executeAI(dt, room) {
+    this.vx = 0;
+    this.vy = 0;
+
+    if (this.spawning) {
+      this.spawnTimer -= dt;
+      this.spawnProgress = Math.min(1, 1 - Math.max(0, this.spawnTimer) / 2.1);
+      this.spiralAngle += dt * (0.55 + this.spawnProgress * 0.85);
+      if (this.spawnTimer <= 0) {
+        this.spawning = false;
+        this.spawnProgress = 1;
+        this.attackTimer = -0.8;
+        if (window.gameInstance) window.gameInstance.addParticle(new Shockwave(this.x, this.y, 105, '#090914', 0.5));
+      }
+      return;
+    }
+
+    this.spiralAngle += dt * (this.absorbing ? 3.8 : 1.4);
+    if (this.teleportWarning > 0) this.teleportWarning -= dt;
+    this.attackTimer += dt;
+    if (this.attackTimer < this.attackInterval) return;
+
+    this.attackTimer = 0;
+    this.attackPattern = Math.floor(Math.random() * 4);
+
+    if (this.attackPattern === 0) {
+      // Absorption: a brief visible rotating aura window.
+      this.absorbing = true;
+      this.absorbTimer = 1.15;
+      if (window.soundEngine) window.soundEngine.playVortexAbsorb();
+    } else if (this.attackPattern === 1) {
+      this.spawnDarkMinions(room);
+    } else if (this.attackPattern === 2) {
+      this.fireSpiral(room);
+    } else {
+      this.teleportInRoom(room);
+    }
+  }
+
+  update(dt, room) {
+    if (this.absorbing) {
+      this.absorbTimer -= dt;
+      if (this.absorbTimer <= 0) this.absorbing = false;
+    }
+    super.update(dt, room);
+  }
+
+  spawnDarkMinions(room) {
+    const pool = [BioSwarmer, BioSpitter, BioBrood, RoboDrone, RoboSentry, RoboRoller, VoidPhantom];
+    const count = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const Ctor = pool[Math.floor(Math.random() * pool.length)];
+      let x = 130 + Math.random() * (CONSTANTS.ROOM_WIDTH - 260);
+      let y = 110 + Math.random() * (CONSTANTS.ROOM_HEIGHT - 220);
+      if (window.isPositionSafe) {
+        let tries = 0;
+        while (tries++ < 18 && !window.isPositionSafe(room, x, y, 22)) {
+          x = 130 + Math.random() * (CONSTANTS.ROOM_WIDTH - 260);
+          y = 110 + Math.random() * (CONSTANTS.ROOM_HEIGHT - 220);
+        }
+      }
+      const minion = new Ctor(x, y);
+      minion.darkVariant = true;
+      room.enemies.push(minion);
+    }
+    if (window.soundEngine) window.soundEngine.playVortexMinions();
+  }
+
+  fireSpiral(room) {
+    const count = 18;
+    const gap = 0.55;
+    const base = this.spiralAngle;
+    for (let i = 0; i < count; i++) {
+      const a = base + i * (Math.PI * 2 / count);
+      // Keep a moving angular gap so the pattern is demanding but readable.
+      const phase = ((i / count) * Math.PI * 2 + base) % (Math.PI * 2);
+      if (phase > gap && phase < gap + 0.8) continue;
+      const proj = new Projectile(this.x, this.y, Math.cos(a) * 235, Math.sin(a) * 235, this.faction, 1, 'void_spiral', '#050509');
+      proj.radius = 8;
+      proj.life = 3.1;
+      proj.owner = this;
+      room.projectiles.push(proj);
+    }
+    if (window.soundEngine) window.soundEngine.playVortexSpiral();
+    if (window.gameInstance) window.gameInstance.screenShake(4, 0.18);
+  }
+
+  teleportInRoom(room) {
+    const p = window.gameInstance?.player;
+    if (!p) return;
+    let x = this.x, y = this.y;
+    for (let i = 0; i < 30; i++) {
+      x = 110 + Math.random() * (CONSTANTS.ROOM_WIDTH - 220);
+      y = 100 + Math.random() * (CONSTANTS.ROOM_HEIGHT - 200);
+      if (Math.hypot(x - p.x, y - p.y) >= 150 && (!window.isPositionSafe || window.isPositionSafe(room, x, y, this.radius))) break;
+    }
+    this.x = x;
+    this.y = y;
+    this.teleportWarning = 0.22;
+    if (window.gameInstance) window.gameInstance.addParticle(new Shockwave(x, y, 70, '#11111a', 0.25));
+    if (window.soundEngine) window.soundEngine.playVortexTeleport();
+  }
+
+  onDeath(source) {
+    const game = window.gameInstance;
+    const room = game?.dungeon?.currentRoom;
+    if (!game || !room || room.type !== 'VORTEX') return;
+    room.vortexDefeatEffect = { x: this.x, y: this.y, startRadius: this.radius, elapsed: 0, duration: 1.55 };
+    room.projectiles = [];
+    room.enemies = room.enemies.filter(e => e !== this && !e.darkVariant);
+    this.dead = true;
+    if (window.soundEngine) window.soundEngine.playVortexDeath();
+  }
+}
 
 // Sector 1 Boss: Gorgon
 class BossGorgon extends Enemy {
@@ -1326,7 +1536,8 @@ class Player extends Entity {
       predatorAdrenals: false,
       contagiousSpores: false,
       chitinShell: false,
-      vampiricTendrils: false
+      vampiricTendrils: false,
+      voidbound: false
     };
     this.tentacleTimer = 0;
     this.spasmTimer = 0;
@@ -1489,6 +1700,10 @@ class Player extends Entity {
     if (this.mutations.predatorAdrenals && this.hp <= this.maxHp * 0.5) {
       fireRateMult = 1.6;
       damageMult = 1.35;
+    }
+    if (this.mutations.voidbound) {
+      fireRateMult *= 0.52;
+      damageMult *= 2.6;
     }
 
     if (this.invulnTimer > 0) this.invulnTimer -= dt;
@@ -1730,6 +1945,7 @@ class Player extends Entity {
       }
 
       const spd = weapon.speed || 550;
+      const voidShot = this.mutations.voidbound;
       const proj = new Projectile(
         this.x + Math.cos(this.angle) * 18,
         this.y + Math.sin(this.angle) * 18,
@@ -1737,8 +1953,8 @@ class Player extends Entity {
         Math.sin(shotAngle) * spd,
         CONSTANTS.FACTIONS.PLAYER,
         baseDmg,
-        weapon.bulletType,
-        weapon.bulletType === 'rail' ? '#bf55ec' : '#00f0ff'
+        voidShot ? 'voidblackhole' : weapon.bulletType,
+        voidShot ? '#050509' : (weapon.bulletType === 'rail' ? '#bf55ec' : '#00f0ff')
       );
       proj.owner = this;
 
@@ -1750,7 +1966,7 @@ class Player extends Entity {
       room.projectiles.push(proj);
     }
 
-    if (window.soundEngine) window.soundEngine.playShoot(weapon.bulletType);
+    if (window.soundEngine) window.soundEngine.playShoot(this.mutations.voidbound ? 'void' : weapon.bulletType);
   }
 
   triggerHackingTool(room, cooldown) {
@@ -1807,6 +2023,16 @@ class Player extends Entity {
       this.o2 = Math.min(this.maxO2, this.o2 + p.amount);
       if (window.soundEngine) window.soundEngine.playPickup('scrap');
       if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${p.amount}% O2`, '#38bdf8'));
+    } else if (p.type === 'mutation_void') {
+      if (!this.mutations.voidbound) {
+        this.addMutation('voidbound');
+        this.stats.mutationsCount++;
+        if (window.soundEngine) window.soundEngine.playVortexReward();
+        if (game) {
+          game.addParticle(new FloatingText(this.x, this.y - 30, 'VOIDBOUND', '#d8d8e8', 1.8));
+          game.addParticle(new Shockwave(this.x, this.y, 70, '#050509', 0.7));
+        }
+      }
     } else if (p.type === 'module_item') {
       // QoL: keep only the two most recent loadout choices. Mutations are
       // intentionally independent and are never removed by this limit.
