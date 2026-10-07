@@ -1,6 +1,5 @@
 /**
- * VOIDBOUND: DERELICT
- * Procedural Dungeon & Room Generator (The Binding of Isaac style)
+ * TecnoBound - Procedural Dungeon, Rooms and Guaranteed Room Allocation
  */
 
 class Room {
@@ -9,27 +8,23 @@ class Room {
     this.gy = gy;
     this.type = type; // 'START', 'COMBAT', 'TREASURE', 'MUTAGEN', 'FABRICATOR', 'HAZARD', 'BOSS'
     this.sector = sector;
-    this.doors = {
-      north: false,
-      south: false,
-      east: false,
-      west: false
-    };
+    this.doors = { north: false, south: false, east: false, west: false };
     this.doorsLocked = false;
     this.visited = false;
     this.cleared = (type === 'START' || type === 'TREASURE' || type === 'MUTAGEN' || type === 'FABRICATOR');
     this.enemies = [];
+    this.pendingEnemies = [];
     this.projectiles = [];
     this.obstacles = [];
     this.pickups = [];
     this.hazards = [];
     this.decorations = [];
-    this.terminals = [];
     this.bossDefeated = false;
     this.airlockActive = false;
     this.vacuumBreach = (sector.hasVacuum || (type === 'HAZARD' && Math.random() < 0.6));
-    
-    // Layout generation
+    this.treasureClaimed = false;
+    this.mutagenClaimed = false;
+
     this.initLayout();
   }
 
@@ -38,189 +33,160 @@ class Room {
     const H = CONSTANTS.ROOM_HEIGHT;
     const T = CONSTANTS.WALL_THICKNESS;
 
-    // Generate random room decorations (pipes, floor plates, grates, bio-growths)
+    // Floor and structural retro decorations
     const decorCount = 8 + Math.floor(Math.random() * 8);
     for (let i = 0; i < decorCount; i++) {
       this.decorations.push({
         x: T + 40 + Math.random() * (W - 2 * T - 80),
         y: T + 40 + Math.random() * (H - 2 * T - 80),
-        size: 15 + Math.random() * 30,
+        size: 15 + Math.random() * 25,
         type: Math.floor(Math.random() * 4),
         rotation: Math.random() * Math.PI * 2
       });
     }
 
-    // Generate room specific obstacles based on type and sector
     if (this.type === 'START') {
-      // Clean room with welcome terminal and starting supplies
+      // Diagnostic Terminal in Start Room
       this.obstacles.push({
-        x: W / 2 - 30,
-        y: 120,
-        w: 60,
+        x: W / 2 - 35,
+        y: 110,
+        w: 70,
         h: 40,
         type: 'terminal',
         label: 'CONSOLE DE DIAGNÓSTICO'
       });
     } else if (this.type === 'TREASURE') {
-      // Item Pedestal in center
-      this.obstacles.push({
-        x: W / 2 - 25,
-        y: H / 2 - 25,
-        w: 50,
-        h: 50,
-        type: 'pedestal',
-        label: 'CÁPSULA DE MÓDULO'
-      });
-    } else if (this.type === 'MUTAGEN') {
-      // Bio-Pod in center
+      // High-grade Robotic Module Pedestal
       this.obstacles.push({
         x: W / 2 - 30,
         y: H / 2 - 30,
         w: 60,
         h: 60,
+        type: 'pedestal',
+        claimed: false,
+        label: 'CÁPSULA DE MÓDULO'
+      });
+    } else if (this.type === 'MUTAGEN') {
+      // Alien Mutagen Infusion Pod
+      this.obstacles.push({
+        x: W / 2 - 35,
+        y: H / 2 - 35,
+        w: 70,
+        h: 70,
         type: 'mutagen_pod',
-        label: 'CÂMARA DE INFUSÃO ALIEN'
+        claimed: false,
+        label: 'CÂMARA DE INFUSÃO MUTAGÊNICA'
       });
     } else if (this.type === 'FABRICATOR') {
-      // Shop terminals along walls
+      // Shop Terminals
       this.obstacles.push(
-        { x: W / 2 - 120, y: 120, w: 70, h: 45, type: 'shop_item', index: 0 },
-        { x: W / 2 + 50, y: 120, w: 70, h: 45, type: 'shop_item', index: 1 },
-        { x: W / 2 - 120, y: H - 160, w: 70, h: 45, type: 'shop_heal' },
-        { x: W / 2 + 50, y: H - 160, w: 70, h: 45, type: 'shop_o2' }
+        { x: W / 2 - 130, y: 115, w: 75, h: 45, type: 'shop_item', bought: false, cost: 25 },
+        { x: W / 2 + 55,  y: 115, w: 75, h: 45, type: 'shop_item', bought: false, cost: 25 },
+        { x: W / 2 - 130, y: H - 165, w: 75, h: 45, type: 'shop_heal', bought: false, cost: 15 },
+        { x: W / 2 + 55,  y: H - 165, w: 75, h: 45, type: 'shop_o2', bought: false, cost: 10 }
       );
     } else if (this.type === 'BOSS') {
-      // Minimal obstacles for boss fight
+      // Arena Cover Pillars
       this.obstacles.push(
-        { x: 160, y: 160, w: 50, h: 50, type: 'pillar' },
-        { x: W - 210, y: 160, w: 50, h: 50, type: 'pillar' },
-        { x: 160, y: H - 210, w: 50, h: 50, type: 'pillar' },
-        { x: W - 210, y: H - 210, w: 50, h: 50, type: 'pillar' }
+        { x: 170, y: 170, w: 45, h: 45, type: 'pillar' },
+        { x: W - 215, y: 170, w: 45, h: 45, type: 'pillar' },
+        { x: 170, y: H - 215, w: 45, h: 45, type: 'pillar' },
+        { x: W - 215, y: H - 215, w: 45, h: 45, type: 'pillar' }
       );
+    } else if (this.type === 'HAZARD') {
+      // Acid Pools or Obstacles
+      this.hazards.push({
+        x: W / 2 - 60,
+        y: H / 2 - 60,
+        w: 120,
+        h: 120,
+        type: 'acid_pool'
+      });
     } else {
-      // COMBAT / HAZARD room layouts
-      const layoutPattern = Math.floor(Math.random() * 5);
-      
-      if (layoutPattern === 0) {
-        // 4 Central Cover Pillars
+      // Combat Room Covers
+      if (Math.random() < 0.6) {
         this.obstacles.push(
-          { x: W * 0.3, y: H * 0.35, w: 50, h: 50, type: 'crate' },
-          { x: W * 0.7 - 50, y: H * 0.35, w: 50, h: 50, type: 'crate' },
-          { x: W * 0.3, y: H * 0.65 - 50, w: 50, h: 50, type: 'crate' },
-          { x: W * 0.7 - 50, y: H * 0.65 - 50, w: 50, h: 50, type: 'crate' }
-        );
-      } else if (layoutPattern === 1) {
-        // Central block with explosive barrels around
-        this.obstacles.push({ x: W / 2 - 40, y: H / 2 - 40, w: 80, h: 80, type: 'pillar' });
-        this.obstacles.push(
-          { x: W / 2 - 140, y: H / 2 - 20, w: 35, h: 35, type: 'explosive_barrel', hp: 20 },
-          { x: W / 2 + 105, y: H / 2 - 20, w: 35, h: 35, type: 'explosive_barrel', hp: 20 }
-        );
-      } else if (layoutPattern === 2) {
-        // Slime / Acid hazard pools or vacuum fissure
-        this.hazards.push({
-          x: W / 2 - 70,
-          y: H / 2 - 70,
-          w: 140,
-          h: 140,
-          type: this.sector.theme === 'organic' ? 'acid_pool' : 'electrified_grate'
-        });
-      } else if (layoutPattern === 3) {
-        // Corner cover blocks and explosive barrels
-        this.obstacles.push(
-          { x: 200, y: 150, w: 70, h: 40, type: 'crate' },
-          { x: W - 270, y: H - 190, w: 70, h: 40, type: 'crate' },
-          { x: W / 2 - 15, y: H / 2 - 15, w: 35, h: 35, type: 'explosive_barrel', hp: 20 }
-        );
-      } else {
-        // Symmetrical trenches / walls
-        this.obstacles.push(
-          { x: W / 2 - 120, y: H / 2 - 15, w: 80, h: 30, type: 'pillar' },
-          { x: W / 2 + 40, y: H / 2 - 15, w: 80, h: 30, type: 'pillar' }
+          { x: W / 2 - 90, y: H / 2 - 20, w: 40, h: 40, type: 'pillar' },
+          { x: W / 2 + 50, y: H / 2 - 20, w: 40, h: 40, type: 'pillar' }
         );
       }
     }
   }
 
-  // Populate enemies when the player first enters an uncleared room
   spawnEnemies() {
     if (this.cleared || this.enemies.length > 0) return;
-
     const W = CONSTANTS.ROOM_WIDTH;
     const H = CONSTANTS.ROOM_HEIGHT;
 
     if (this.type === 'BOSS') {
-      // Spawn Sector Boss!
       if (this.sector.id === 1) {
-        // Boss 1: Gorgon-X / Bio-Core Primus (Organic Sector)
         this.enemies.push(new BossGorgon(W / 2, H / 2));
       } else if (this.sector.id === 2) {
-        // Boss 2: Titan-Omega / Mech Overlord (Robotic Sector)
         this.enemies.push(new BossTitan(W / 2, H / 2));
-      } else {
-        // Boss 3: Entropia / Void Reactor (Vacuum Sector)
+      } else if (this.sector.id === 3) {
         this.enemies.push(new BossEntropia(W / 2, H / 2));
+      } else if (this.sector.id === 4) {
+        this.enemies.push(new BossArchon(W / 2, H / 2));
       }
+      if (window.soundEngine) window.soundEngine.playBossAlarm();
       return;
     }
 
-    if (this.type === 'HAZARD') {
-      // Warzone: Faction battle between ALIEN and ROBOT!
-      // 3 Aliens vs 3 Robots
-      const spawnPoints = [
-        { x: 180, y: 180 }, { x: 180, y: H - 180 }, { x: 250, y: H / 2 },
-        { x: W - 180, y: 180 }, { x: W - 180, y: H - 180 }, { x: W - 250, y: H / 2 }
-      ];
+    if (this.type === 'COMBAT' || this.type === 'HAZARD') {
+      const enemyCount = 3 + Math.floor(Math.random() * 3);
 
-      // Left side: Aliens
-      this.enemies.push(new BioSwarmer(spawnPoints[0].x, spawnPoints[0].y));
-      this.enemies.push(new BioSwarmer(spawnPoints[1].x, spawnPoints[1].y));
-      this.enemies.push(new BioSpitter(spawnPoints[2].x, spawnPoints[2].y));
+      for (let i = 0; i < enemyCount; i++) {
+        let ex = 120 + Math.random() * (W - 240);
+        let ey = 120 + Math.random() * (H - 240);
 
-      // Right side: Robots
-      this.enemies.push(new RoboDrone(spawnPoints[3].x, spawnPoints[3].y));
-      this.enemies.push(new RoboSentry(spawnPoints[4].x, spawnPoints[4].y));
-      this.enemies.push(new RoboRoller(spawnPoints[5].x, spawnPoints[5].y));
-      return;
-    }
-
-    // Standard COMBAT room spawn
-    const count = 3 + Math.floor(Math.random() * 3) + Math.floor(this.sector.id * 0.8);
-    const primaryFaction = this.sector.theme === 'organic' ? 'alien' : (this.sector.theme === 'robotic' ? 'robot' : 'void');
-
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
-      const dist = 180 + Math.random() * 80;
-      const ex = W / 2 + Math.cos(angle) * dist;
-      const ey = H / 2 + Math.sin(angle) * dist;
-
-      if (primaryFaction === 'alien') {
-        const roll = Math.random();
-        if (roll < 0.55) {
-          this.enemies.push(new BioSwarmer(ex, ey));
-        } else if (roll < 0.85) {
-          this.enemies.push(new BioSpitter(ex, ey));
-        } else {
-          this.enemies.push(new BioBrood(ex, ey));
+        // Pre-validate coordinates so enemies never spawn inside pillars or obstacles
+        let safeTries = 0;
+        while (safeTries < 25 && window.isPositionSafe && !window.isPositionSafe(this, ex, ey, 24)) {
+          ex = 120 + Math.random() * (W - 240);
+          ey = 120 + Math.random() * (H - 240);
+          safeTries++;
         }
-      } else if (primaryFaction === 'robot') {
-        const roll = Math.random();
-        if (roll < 0.45) {
-          this.enemies.push(new RoboDrone(ex, ey));
-        } else if (roll < 0.75) {
-          this.enemies.push(new RoboSentry(ex, ey));
+
+        if (this.sector.id === 1) {
+          // Sector 1: Alien Infestation
+          const roll = Math.random();
+          if (roll < 0.55) {
+            this.enemies.push(new BioSwarmer(ex, ey));
+          } else if (roll < 0.85) {
+            this.enemies.push(new BioSpitter(ex, ey));
+          } else {
+            this.enemies.push(new BioBrood(ex, ey));
+          }
+        } else if (this.sector.id === 2) {
+          // Sector 2: Automaton Complex
+          const roll = Math.random();
+          if (roll < 0.45) {
+            this.enemies.push(new RoboDrone(ex, ey));
+          } else if (roll < 0.75) {
+            this.enemies.push(new RoboSentry(ex, ey));
+          } else {
+            this.enemies.push(new RoboRoller(ex, ey));
+          }
+        } else if (this.sector.id === 3) {
+          // Sector 3: Deep Vacuum & Void Stalkers
+          const roll = Math.random();
+          if (roll < 0.45) {
+            this.enemies.push(new VoidPhantom(ex, ey));
+          } else if (roll < 0.75) {
+            this.enemies.push(new RoboDrone(ex, ey));
+          } else {
+            this.enemies.push(new BioSpitter(ex, ey));
+          }
         } else {
-          this.enemies.push(new RoboRoller(ex, ey));
-        }
-      } else {
-        // Void sector - mixed rogue entities and void stalkers
-        const roll = Math.random();
-        if (roll < 0.35) {
-          this.enemies.push(new VoidPhantom(ex, ey));
-        } else if (roll < 0.65) {
-          this.enemies.push(new RoboDrone(ex, ey));
-        } else {
-          this.enemies.push(new BioSpitter(ex, ey));
+          // Sector 4: Ship Core (Inter-faction Warzone)
+          const roll = Math.random();
+          if (roll < 0.35) {
+            this.enemies.push(new RoboDrone(ex, ey));
+          } else if (roll < 0.70) {
+            this.enemies.push(new BioSpitter(ex, ey));
+          } else {
+            this.enemies.push(new VoidPhantom(ex, ey));
+          }
         }
       }
     }
@@ -231,7 +197,7 @@ class Dungeon {
   constructor(sector) {
     this.sector = sector;
     this.gridSize = 7;
-    this.rooms = new Map(); // key: "x,y" => Room
+    this.rooms = new Map();
     this.startRoom = null;
     this.bossRoom = null;
     this.treasureRoom = null;
@@ -239,21 +205,47 @@ class Dungeon {
     this.shopRoom = null;
     this.currentRoom = null;
 
-    this.generate();
+    this.generateWithValidation();
+  }
+
+  generateWithValidation() {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      this.rooms.clear();
+      this.startRoom = null;
+      this.bossRoom = null;
+      this.treasureRoom = null;
+      this.mutagenRoom = null;
+      this.shopRoom = null;
+      this.currentRoom = null;
+
+      this.generate();
+
+      const validation = this.validateMap();
+      if (validation.valid) {
+        return;
+      }
+    }
+
+    // Deterministic fallback guarantees a fully playable, 100% connected map with all required rooms
+    this.generateDeterministicFallback();
   }
 
   generate() {
-    const center = Math.floor(this.gridSize / 2);
-    const targetRoomCount = this.sector.roomCount || 10;
-    
-    // Step 1: Procedural random walk BFS expansion (Isaac layout)
+    const center = Math.floor(this.gridSize / 2); // 3
+    const targetRoomCount = Math.max(9, this.sector.roomCount || 9);
+
+    // Step 1: Isaac-style Random Walk BFS Tree Expansion
     const positions = [{ x: center, y: center }];
     const posSet = new Set([`${center},${center}`]);
 
-    let safetyCount = 0;
-    while (positions.length < targetRoomCount && safetyCount < 300) {
-      safetyCount++;
-      const basePos = positions[Math.floor(Math.random() * positions.length)];
+    let safety = 0;
+    while (positions.length < targetRoomCount && safety < 400) {
+      safety++;
+      const base = positions[Math.floor(Math.random() * positions.length)];
       const dirs = [
         { dx: 0, dy: -1 }, // N
         { dx: 0, dy: 1 },  // S
@@ -261,111 +253,223 @@ class Dungeon {
         { dx: -1, dy: 0 }  // W
       ];
       const dir = dirs[Math.floor(Math.random() * dirs.length)];
-      const nx = basePos.x + dir.dx;
-      const ny = basePos.y + dir.dy;
+      const nx = base.x + dir.dx;
+      const ny = base.y + dir.dy;
       const key = `${nx},${ny}`;
 
-      // Stay within grid boundaries
       if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize && !posSet.has(key)) {
-        // Isaac rule: Don't clump too many neighbors together (maintains tree-like branching)
-        let neighborCount = 0;
+        let neighbors = 0;
         dirs.forEach(d => {
-          if (posSet.has(`${nx + d.dx},${ny + d.dy}`)) neighborCount++;
+          if (posSet.has(`${nx + d.dx},${ny + d.dy}`)) neighbors++;
         });
 
-        if (neighborCount === 1 || Math.random() < 0.35) {
+        // Maintain tree-like branching
+        if (neighbors === 1 || Math.random() < 0.3) {
           positions.push({ x: nx, y: ny });
           posSet.add(key);
         }
       }
     }
 
-    // Step 2: Assign room roles
-    // Start is at center
+    // Step 2: Identify Dead Ends and Distance Metrics
     const startPos = positions[0];
-    const deadEnds = [];
-
-    // Calculate distance from start and neighbor counts
     const dirs = [
-      { dx: 0, dy: -1, name: 'north' },
-      { dx: 0, dy: 1, name: 'south' },
-      { dx: 1, dy: 0, name: 'east' },
-      { dx: -1, dy: 0, name: 'west' }
+      { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }
     ];
 
+    const deadEnds = [];
     positions.forEach(p => {
-      let nNeighbors = 0;
+      if (p.x === startPos.x && p.y === startPos.y) return;
+      let neighbors = 0;
       dirs.forEach(d => {
-        if (posSet.has(`${p.x + d.dx},${p.y + d.dy}`)) nNeighbors++;
+        if (posSet.has(`${p.x + d.dx},${p.y + d.dy}`)) neighbors++;
       });
       const dist = Math.abs(p.x - startPos.x) + Math.abs(p.y - startPos.y);
-      if (nNeighbors === 1 && (p.x !== startPos.x || p.y !== startPos.y)) {
+      if (neighbors === 1) {
         deadEnds.push({ ...p, dist });
       }
     });
 
-    // Sort dead ends by distance (farthest first)
+    // Sort dead ends farthest from start first
     deadEnds.sort((a, b) => b.dist - a.dist);
 
-    // Farthest dead-end is BOSS room
-    const bossPos = deadEnds.length > 0 ? deadEnds[0] : positions[positions.length - 1];
-    
-    // Other special rooms from remaining dead ends or outer branches
-    const remainingDeadEnds = deadEnds.filter(p => `${p.x},${p.y}` !== `${bossPos.x},${bossPos.y}`);
-    const treasurePos = remainingDeadEnds.length > 0 ? remainingDeadEnds[0] : positions[1];
-    const mutagenPos = remainingDeadEnds.length > 1 ? remainingDeadEnds[1] : positions[2];
-    const shopPos = remainingDeadEnds.length > 2 ? remainingDeadEnds[2] : positions[3];
+    // Step 3: Guaranteed Position Reservation (Zero Overwrites)
+    // Candidate pool contains all positions except startPos
+    let candidatePool = positions.filter(p => !(p.x === startPos.x && p.y === startPos.y));
+    candidatePool.sort((a, b) => {
+      const da = Math.abs(a.x - startPos.x) + Math.abs(a.y - startPos.y);
+      const db = Math.abs(b.x - startPos.x) + Math.abs(b.y - startPos.y);
+      return db - da; // Farthest first
+    });
 
-    // Step 3: Instantiate Room objects
+    const reservedPositions = new Map(); // key `${x},${y}` => type
+    reservedPositions.set(`${startPos.x},${startPos.y}`, 'START');
+
+    const takeFromPool = (preferredArray) => {
+      // Find first available from preferredArray
+      for (let i = 0; i < preferredArray.length; i++) {
+        const key = `${preferredArray[i].x},${preferredArray[i].y}`;
+        if (!reservedPositions.has(key)) {
+          return preferredArray[i];
+        }
+      }
+      // Fallback: take first available from candidatePool
+      for (let i = 0; i < candidatePool.length; i++) {
+        const key = `${candidatePool[i].x},${candidatePool[i].y}`;
+        if (!reservedPositions.has(key)) {
+          return candidatePool[i];
+        }
+      }
+      return null;
+    };
+
+    // 1. BOSS Room: Farthest dead end, or farthest candidate
+    const bossPos = takeFromPool(deadEnds);
+    if (bossPos) reservedPositions.set(`${bossPos.x},${bossPos.y}`, 'BOSS');
+
+    // 2. TREASURE Room: Dead end or outer branch
+    const treasurePos = takeFromPool(deadEnds);
+    if (treasurePos) reservedPositions.set(`${treasurePos.x},${treasurePos.y}`, 'TREASURE');
+
+    // 3. MUTAGEN Room: Dead end or outer branch
+    const mutagenPos = takeFromPool(deadEnds);
+    if (mutagenPos) reservedPositions.set(`${mutagenPos.x},${mutagenPos.y}`, 'MUTAGEN');
+
+    // 4. FABRICATOR (Shop) Room: Dead end or candidate
+    const shopPos = takeFromPool(deadEnds);
+    if (shopPos) reservedPositions.set(`${shopPos.x},${shopPos.y}`, 'FABRICATOR');
+
+    // Step 4: Instantiate All Rooms
     positions.forEach(p => {
       const key = `${p.x},${p.y}`;
-      let type = 'COMBAT';
-
-      if (p.x === startPos.x && p.y === startPos.y) {
-        type = 'START';
-      } else if (p.x === bossPos.x && p.y === bossPos.y) {
-        type = 'BOSS';
-      } else if (p.x === treasurePos.x && p.y === treasurePos.y) {
-        type = 'TREASURE';
-      } else if (p.x === mutagenPos.x && p.y === mutagenPos.y) {
-        type = 'MUTAGEN';
-      } else if (p.x === shopPos.x && p.y === shopPos.y) {
-        type = 'FABRICATOR';
-      } else if (Math.random() < 0.28) {
-        // Chance of Warzone / Hazard room
-        type = 'HAZARD';
+      let type = reservedPositions.get(key);
+      if (!type) {
+        type = Math.random() < 0.25 ? 'HAZARD' : 'COMBAT';
       }
 
       const room = new Room(p.x, p.y, type, this.sector);
       this.rooms.set(key, room);
 
       if (type === 'START') this.startRoom = room;
-      if (type === 'BOSS') this.bossRoom = room;
-      if (type === 'TREASURE') this.treasureRoom = room;
-      if (type === 'MUTAGEN') this.mutagenRoom = room;
-      if (type === 'FABRICATOR') this.shopRoom = room;
+      else if (type === 'BOSS') this.bossRoom = room;
+      else if (type === 'TREASURE') this.treasureRoom = room;
+      else if (type === 'MUTAGEN') this.mutagenRoom = room;
+      else if (type === 'FABRICATOR') this.shopRoom = room;
     });
 
-    // Step 4: Configure Door connections between adjacent rooms
+    // Step 5: Door Connectivity Linking
     this.rooms.forEach(room => {
-      const northKey = `${room.gx},${room.gy - 1}`;
-      const southKey = `${room.gx},${room.gy + 1}`;
-      const eastKey = `${room.gx + 1},${room.gy}`;
-      const westKey = `${room.gx - 1},${room.gy}`;
-
-      if (this.rooms.has(northKey)) room.doors.north = true;
-      if (this.rooms.has(southKey)) room.doors.south = true;
-      if (this.rooms.has(eastKey)) room.doors.east = true;
-      if (this.rooms.has(westKey)) room.doors.west = true;
+      if (this.rooms.has(`${room.gx},${room.gy - 1}`)) room.doors.north = true;
+      if (this.rooms.has(`${room.gx},${room.gy + 1}`)) room.doors.south = true;
+      if (this.rooms.has(`${room.gx + 1},${room.gy}`)) room.doors.east = true;
+      if (this.rooms.has(`${room.gx - 1},${room.gy}`)) room.doors.west = true;
     });
 
-    // Set initial active room
     this.currentRoom = this.startRoom;
-    this.currentRoom.visited = true;
+    if (this.currentRoom) {
+      this.currentRoom.visited = true;
+    }
+  }
+
+  validateMap() {
+    // 1. Mandatory rooms check
+    if (!this.startRoom) return { valid: false, reason: 'Start room missing' };
+    if (!this.bossRoom) return { valid: false, reason: 'Boss room missing' };
+    if (!this.treasureRoom) return { valid: false, reason: 'Treasure room missing' };
+    if (!this.mutagenRoom) return { valid: false, reason: 'Mutagen room missing' };
+    if (!this.shopRoom) return { valid: false, reason: 'Shop room missing' };
+
+    // 2. Uniqueness check (No coordinate collisions)
+    const specialCoords = new Set([
+      `${this.startRoom.gx},${this.startRoom.gy}`,
+      `${this.bossRoom.gx},${this.bossRoom.gy}`,
+      `${this.treasureRoom.gx},${this.treasureRoom.gy}`,
+      `${this.mutagenRoom.gx},${this.mutagenRoom.gy}`,
+      `${this.shopRoom.gx},${this.shopRoom.gy}`
+    ]);
+    if (specialCoords.size !== 5) {
+      return { valid: false, reason: 'Duplicate coordinates among special rooms' };
+    }
+
+    // 3. Reachability check (BFS from Start room)
+    const visited = new Set();
+    const queue = [`${this.startRoom.gx},${this.startRoom.gy}`];
+    visited.add(queue[0]);
+
+    while (queue.length > 0) {
+      const key = queue.shift();
+      const [x, y] = key.split(',').map(Number);
+      const room = this.rooms.get(key);
+      if (!room) continue;
+
+      const neighbors = [
+        { k: `${x},${y - 1}`, hasDoor: room.doors.north },
+        { k: `${x},${y + 1}`, hasDoor: room.doors.south },
+        { k: `${x + 1},${y}`, hasDoor: room.doors.east },
+        { k: `${x - 1},${y}`, hasDoor: room.doors.west }
+      ];
+
+      neighbors.forEach(n => {
+        if (n.hasDoor && this.rooms.has(n.k) && !visited.has(n.k)) {
+          visited.add(n.k);
+          queue.push(n.k);
+        }
+      });
+    }
+
+    // Check that every room in this.rooms is reachable
+    if (visited.size !== this.rooms.size) {
+      return { valid: false, reason: 'Not all rooms are connected to start' };
+    }
+
+    return { valid: true };
   }
 
   getRoom(gx, gy) {
     return this.rooms.get(`${gx},${gy}`) || null;
+  }
+
+  generateDeterministicFallback() {
+    this.rooms.clear();
+    const cx = Math.floor(this.gridSize / 2); // 3
+    const cy = Math.floor(this.gridSize / 2); // 3
+
+    // Cross-shaped guaranteed map layout
+    const layout = [
+      { gx: cx, gy: cy, type: 'START' },
+      { gx: cx, gy: cy - 1, type: 'COMBAT' },
+      { gx: cx, gy: cy - 2, type: 'BOSS' },
+      { gx: cx - 1, gy: cy, type: 'TREASURE' },
+      { gx: cx + 1, gy: cy, type: 'MUTAGEN' },
+      { gx: cx, gy: cy + 1, type: 'FABRICATOR' },
+      { gx: cx - 1, gy: cy - 1, type: 'COMBAT' },
+      { gx: cx + 1, gy: cy - 1, type: 'HAZARD' },
+      { gx: cx, gy: cy + 2, type: 'COMBAT' }
+    ];
+
+    layout.forEach(item => {
+      const room = new Room(item.gx, item.gy, item.type, this.sector);
+      const key = `${item.gx},${item.gy}`;
+      this.rooms.set(key, room);
+      if (item.type === 'START') this.startRoom = room;
+      else if (item.type === 'BOSS') this.bossRoom = room;
+      else if (item.type === 'TREASURE') this.treasureRoom = room;
+      else if (item.type === 'MUTAGEN') this.mutagenRoom = room;
+      else if (item.type === 'FABRICATOR') this.shopRoom = room;
+    });
+
+    // Link all adjacent doors
+    this.rooms.forEach(room => {
+      if (this.rooms.has(`${room.gx},${room.gy - 1}`)) room.doors.north = true;
+      if (this.rooms.has(`${room.gx},${room.gy + 1}`)) room.doors.south = true;
+      if (this.rooms.has(`${room.gx + 1},${room.gy}`)) room.doors.east = true;
+      if (this.rooms.has(`${room.gx - 1},${room.gy}`)) room.doors.west = true;
+    });
+
+    this.currentRoom = this.startRoom;
+    if (this.currentRoom) {
+      this.currentRoom.visited = true;
+    }
   }
 }
 
