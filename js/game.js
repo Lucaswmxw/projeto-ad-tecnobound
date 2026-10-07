@@ -711,159 +711,125 @@ const PixelArt = {
       ctx.stroke();
     }
 
-    // REGULAR ENEMIES — detailed pixel-art silhouettes.
-    // IMPORTANT: collision hitboxes are stored separately in entities.js and are
-    // never rendered here. These shapes are purely visual.
+    // REGULAR ENEMIES — handcrafted pixel-art silhouettes.
+    // These drawings are visual only. Collision uses e.hitRadius and is never rendered.
+    const r = e.radius;
+
     if (e instanceof BioSwarmer) {
-      // Bio-Swarmer: small alien insect with shell, eyes and four legs.
+      // Small alien insect: shell, head, mandibles, antennae and six legs.
+      ctx.strokeStyle = '#064e3b';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'square';
+      const legs = [
+        [-8,-4,-17,-9], [-9,2,-18,4], [-7,7,-15,13],
+        [8,-4,17,-9], [9,2,18,4], [7,7,15,13]
+      ];
+      for (const [x1,y1,x2,y2] of legs) {
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
       ctx.fillStyle = '#14532d';
-      ctx.fillRect(-8, -9, 16, 18);
+      ctx.beginPath();
+      ctx.moveTo(-11,-5); ctx.lineTo(-7,-13); ctx.lineTo(0,-16); ctx.lineTo(7,-13);
+      ctx.lineTo(11,-5); ctx.lineTo(9,8); ctx.lineTo(3,13); ctx.lineTo(-4,13); ctx.lineTo(-10,8); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#39ff14';
-      ctx.fillRect(-6, -7, 12, 14);
-      ctx.fillRect(-9, -4, 4, 8);
-      ctx.fillRect(5, -4, 4, 8);
-      ctx.fillStyle = '#052e16';
-      ctx.fillRect(-4, -3, 3, 3);
-      ctx.fillRect(2, -3, 3, 3);
-      ctx.fillStyle = '#86efac';
-      ctx.fillRect(-2, 3, 4, 2);
-      ctx.fillStyle = '#14532d';
-      ctx.fillRect(-11, -7, 3, 2);
-      ctx.fillRect(8, -7, 3, 2);
-      ctx.fillRect(-11, 5, 3, 2);
-      ctx.fillRect(8, 5, 3, 2);
+      ctx.beginPath(); ctx.ellipse(0,1,9,11,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#86efac'; ctx.fillRect(-6,-9,4,4); ctx.fillRect(2,-9,4,4);
+      ctx.fillStyle = '#052e16'; ctx.fillRect(-5,-6,3,4); ctx.fillRect(2,-6,3,4);
+      ctx.fillStyle = '#ff0055'; ctx.fillRect(-2,0,4,5);
+      ctx.fillStyle = '#064e3b';
+      ctx.beginPath(); ctx.moveTo(-5,-12); ctx.lineTo(-11,-18); ctx.lineTo(-10,-19); ctx.lineTo(-3,-14); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(5,-12); ctx.lineTo(11,-18); ctx.lineTo(10,-19); ctx.lineTo(3,-14); ctx.closePath(); ctx.fill();
     } else if (e instanceof BioSpitter) {
-      // Bio-Spitter: squat alien with armored plates, central mouth and side sacs.
-      ctx.fillStyle = '#166534';
-      ctx.fillRect(-12, -10, 24, 20);
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(-9, -12, 18, 24);
-      ctx.fillRect(-13, -5, 4, 10);
-      ctx.fillRect(9, -5, 4, 10);
-      ctx.fillStyle = '#052e16';
-      ctx.fillRect(-6, -7, 4, 3);
-      ctx.fillRect(2, -7, 4, 3);
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(-5, -1, 10, 7);
-      ctx.fillStyle = '#fecdd3';
-      ctx.fillRect(-2, 0, 4, 2);
-      ctx.fillStyle = '#86efac';
-      ctx.fillRect(-6, 8, 4, 3);
-      ctx.fillRect(2, 8, 4, 3);
-    } else if (e instanceof BioBrood) {
-      // Bio-Brood: large armored brood creature with shell segments and core.
+      // Acid-spitting alien: squat body, shell plates, eyes, throat and side sacs.
       ctx.fillStyle = '#064e3b';
       ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#15803d';
-      ctx.fillRect(-15, -12, 30, 24);
-      ctx.fillRect(-11, -16, 22, 32);
-      ctx.fillStyle = '#166534';
-      ctx.fillRect(-20, -6, 5, 12);
-      ctx.fillRect(15, -6, 5, 12);
+      ctx.moveTo(-r*0.95,0); ctx.lineTo(-r*0.65,-r*0.72); ctx.lineTo(-r*0.15,-r);
+      ctx.lineTo(r*0.35,-r*0.82); ctx.lineTo(r*0.9,-r*0.35); ctx.lineTo(r, r*0.35);
+      ctx.lineTo(r*0.55,r*0.85); ctx.lineTo(0,r); ctx.lineTo(-r*0.7,r*0.7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath(); ctx.moveTo(-r*0.7,-r*0.25); ctx.lineTo(-r*0.4,-r*0.7); ctx.lineTo(0,-r*0.82);
+      ctx.lineTo(r*0.5,-r*0.55); ctx.lineTo(r*0.7,0); ctx.lineTo(r*0.45,r*0.58);
+      ctx.lineTo(0,r*0.7); ctx.lineTo(-r*0.55,r*0.48); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#86efac';
-      ctx.fillRect(-7, -8, 14, 16);
-      ctx.fillStyle = '#052e16';
-      ctx.fillRect(-4, -4, 8, 8);
-      ctx.fillStyle = '#39ff14';
-      ctx.fillRect(-2, -2, 4, 4);
+      ctx.fillRect(-r*0.55,-r*0.45,5,4); ctx.fillRect(r*0.32,-r*0.45,5,4);
+      ctx.fillStyle = '#052e16'; ctx.fillRect(-r*0.48,-r*0.4,3,3); ctx.fillRect(r*0.38,-r*0.4,3,3);
+      ctx.fillStyle = '#ff0055';
+      ctx.beginPath(); ctx.moveTo(-7,-1); ctx.lineTo(-4,6); ctx.lineTo(0,9); ctx.lineTo(4,6); ctx.lineTo(7,-1); ctx.lineTo(3,-5); ctx.lineTo(-3,-5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fecdd3'; ctx.fillRect(-2,1,4,2);
+      ctx.fillStyle = '#15803d'; ctx.fillRect(-r*0.95,-3,5,10); ctx.fillRect(r*0.75,-3,5,10);
+      ctx.fillStyle = '#39ff14'; ctx.fillRect(-r*0.55,r*0.6,5,4); ctx.fillRect(r*0.3,r*0.6,5,4);
+    } else if (e instanceof BioBrood) {
+      // Heavy alien brood: layered carapace, mandibles, eye cluster and legs.
+      ctx.strokeStyle = '#052e16'; ctx.lineWidth = 4; ctx.lineCap = 'square';
+      for (const [x1,y1,x2,y2] of [[-13,-8,-23,-14],[-15,1,-25,2],[-11,10,-21,17],[13,-8,23,-14],[15,1,25,2],[11,10,21,17]]) {
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
+      ctx.fillStyle = '#064e3b';
+      ctx.beginPath(); ctx.moveTo(-17,-7); ctx.lineTo(-12,-17); ctx.lineTo(-3,-21); ctx.lineTo(7,-18); ctx.lineTo(16,-8);
+      ctx.lineTo(17,9); ctx.lineTo(8,19); ctx.lineTo(-5,21); ctx.lineTo(-16,11); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath(); ctx.moveTo(-11,-7); ctx.lineTo(-6,-14); ctx.lineTo(5,-15); ctx.lineTo(12,-6); ctx.lineTo(11,8); ctx.lineTo(4,15); ctx.lineTo(-8,14); ctx.lineTo(-13,5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#86efac';
+      ctx.beginPath(); ctx.ellipse(0,1,9,10,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#052e16'; ctx.fillRect(-5,-5,4,4); ctx.fillRect(2,-5,4,4);
+      ctx.fillStyle = '#39ff14'; ctx.fillRect(-3,-1,6,6);
+      ctx.fillStyle = '#ff0055'; ctx.fillRect(-1,1,2,3);
       ctx.fillStyle = '#14532d';
-      ctx.fillRect(-13, -15, 5, 4);
-      ctx.fillRect(8, -15, 5, 4);
-      ctx.fillRect(-13, 11, 5, 4);
-      ctx.fillRect(8, 11, 5, 4);
+      ctx.fillRect(-13,-18,5,4); ctx.fillRect(8,-18,5,4); ctx.fillRect(-13,14,5,4); ctx.fillRect(8,14,5,4);
     } else if (e instanceof RoboDrone) {
-      // Robo-Drone: floating combat drone with frame, sensor, thrusters and fins.
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(-12, -12, 24, 24);
-      ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
-      ctx.fillRect(-9, -9, 18, 18);
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(-15, -5, 4, 10);
-      ctx.fillRect(11, -5, 4, 10);
-      ctx.fillRect(-5, -15, 10, 4);
-      ctx.fillRect(-5, 11, 10, 4);
-      ctx.fillStyle = '#020617';
-      ctx.fillRect(-6, -6, 12, 12);
-      ctx.fillStyle = e.isHacked ? '#ffffff' : '#ff8aa8';
-      ctx.fillRect(-3, -3, 6, 6);
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(-4, -17, 8, 2);
-      ctx.fillRect(-4, 15, 8, 2);
-    } else if (e instanceof RoboSentry) {
-      // Robo-Sentry: stationary turret with reinforced chassis and twin barrels.
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(-15, -15, 30, 30);
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(-12, -12, 24, 24);
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(-18, -9, 6, 18);
-      ctx.fillRect(12, -9, 6, 18);
-      ctx.fillRect(-8, -18, 16, 5);
-      ctx.fillRect(-8, 13, 16, 5);
-      ctx.strokeStyle = e.isHacked ? '#00f0ff' : '#ff0055';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-12, -12, 24, 24);
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(-6, -6, 12, 12);
-      ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
-      ctx.fillRect(-3, -3, 6, 6);
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(8, -11, 10, 4);
-      ctx.fillRect(8, 7, 10, 4);
-    } else if (e instanceof RoboRoller) {
-      // Robo-Roller: armored rolling chassis with visible treads and front core.
-      ctx.fillStyle = '#0c4a6e';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#0369a1';
-      ctx.fillRect(-13, -10, 26, 20);
+      // Floating combat drone: hexagonal chassis, antenna, side fins, thrusters and lens.
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(-16, -7, 5, 14);
-      ctx.fillRect(11, -7, 5, 14);
-      ctx.fillStyle = '#7dd3fc';
-      ctx.fillRect(-8, -6, 16, 12);
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(-4, -4, 8, 8);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, -3, 3, 6);
-      ctx.strokeStyle = '#bae6fd';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-13, -10, 26, 20);
+      ctx.beginPath(); ctx.moveTo(-r*0.65,-r); ctx.lineTo(r*0.55,-r); ctx.lineTo(r,r*0.05); ctx.lineTo(r*0.55,r); ctx.lineTo(-r*0.6,r); ctx.lineTo(-r,r*0.1); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
+      ctx.beginPath(); ctx.moveTo(-r*0.55,-r*0.7); ctx.lineTo(r*0.45,-r*0.7); ctx.lineTo(r*0.7,0); ctx.lineTo(r*0.35,r*0.65); ctx.lineTo(-r*0.45,r*0.65); ctx.lineTo(-r*0.7,0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#475569'; ctx.fillRect(-r-5,-5,6,10); ctx.fillRect(r-1,-5,6,10);
+      ctx.fillRect(-4,-r-6,8,6); ctx.fillRect(-4,r,8,6);
+      ctx.fillStyle = '#020617'; ctx.fillRect(-8,-7,16,14);
+      ctx.fillStyle = e.isHacked ? '#ffffff' : '#ff8aa8';
+      ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(-2,-2,4,4);
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0,-r-6); ctx.lineTo(0,-r-11); ctx.stroke();
+      ctx.fillStyle = '#ff0055'; ctx.fillRect(-2,-r-13,4,3);
+    } else if (e instanceof RoboSentry) {
+      // Armed sentry: tracked base, angular armor, sensor and twin cannons.
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(-r*0.9,r*0.55,r*1.8,7);
+      ctx.fillRect(-r*0.7,r*0.78,r*1.4,5);
+      ctx.fillStyle = '#475569'; ctx.fillRect(-r*0.72,-r*0.9,8, r*1.8); ctx.fillRect(r*0.55,-r*0.9,8,r*1.8);
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath(); ctx.moveTo(-r*0.75,-r*0.5); ctx.lineTo(-r*0.4,-r); ctx.lineTo(r*0.45,-r); ctx.lineTo(r*0.8,-r*0.45);
+      ctx.lineTo(r*0.72,r*0.55); ctx.lineTo(r*0.3,r*0.82); ctx.lineTo(-r*0.55,r*0.7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(-8,-7,16,14);
+      ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f'; ctx.fillRect(-4,-4,8,8);
+      ctx.fillStyle = '#94a3b8'; ctx.fillRect(r*0.55,-r*0.7,14,5); ctx.fillRect(r*0.55,r*0.42,14,5);
+      ctx.fillStyle = '#111827'; ctx.fillRect(r*0.85,-r*0.62,9,3); ctx.fillRect(r*0.85,r*0.52,9,3);
+      ctx.strokeStyle = e.isHacked ? '#00f0ff' : '#ff0055'; ctx.lineWidth = 2; ctx.strokeRect(-r*0.75,-r*0.5,r*1.5,r*1.2);
+    } else if (e instanceof RoboRoller) {
+      // Armored rolling robot: tire, side treads, bolts, front plate and optic.
+      ctx.fillStyle = '#0c4a6e'; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(-r-5,-r*0.55,7,r*1.1); ctx.fillRect(r-2,-r*0.55,7,r*1.1);
+      ctx.fillStyle = '#0369a1';
+      ctx.beginPath(); ctx.moveTo(-r*0.65,-r*0.7); ctx.lineTo(r*0.55,-r*0.65); ctx.lineTo(r*0.78,-r*0.1); ctx.lineTo(r*0.65,r*0.62); ctx.lineTo(-r*0.55,r*0.7); ctx.lineTo(-r*0.78,0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7dd3fc'; ctx.fillRect(-r*0.45,-7,r*0.9,14);
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(-4,-5,9,10);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(1,-3,4,6);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(-r*0.7,-r*0.85,5,5); ctx.fillRect(r*0.5,-r*0.85,5,5); ctx.fillRect(-r*0.7,r*0.62,5,5); ctx.fillRect(r*0.5,r*0.62,5,5);
+      ctx.strokeStyle = '#bae6fd'; ctx.lineWidth = 2; ctx.stroke();
     } else if (e instanceof VoidPhantom) {
-      // Void Phantom: spectral entity with hooded body, tendrils and central eye.
+      // Spectral alien: hood, tapered body, floating tendrils and luminous eye.
       ctx.fillStyle = '#4a044e';
-      ctx.beginPath();
-      ctx.moveTo(-12, -10);
-      ctx.lineTo(-5, -17);
-      ctx.lineTo(5, -17);
-      ctx.lineTo(12, -10);
-      ctx.lineTo(15, 9);
-      ctx.lineTo(8, 14);
-      ctx.lineTo(3, 11);
-      ctx.lineTo(0, 17);
-      ctx.lineTo(-4, 11);
-      ctx.lineTo(-10, 14);
-      ctx.lineTo(-15, 8);
-      ctx.closePath();
-      ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-r*0.7,-r*0.85); ctx.lineTo(-r*0.3,-r*1.15); ctx.lineTo(r*0.3,-r*1.15); ctx.lineTo(r*0.72,-r*0.8);
+      ctx.lineTo(r*0.9,-r*0.05); ctx.lineTo(r*0.65,r*0.55); ctx.lineTo(r*0.4,r*0.9); ctx.lineTo(r*0.1,r*0.62);
+      ctx.lineTo(0,r*1.15); ctx.lineTo(-r*0.12,r*0.65); ctx.lineTo(-r*0.5,r*0.95); ctx.lineTo(-r*0.82,r*0.5); ctx.lineTo(-r*0.92,-r*0.1); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#bf55ec';
-      ctx.fillRect(-9, -8, 18, 16);
-      ctx.fillRect(-12, -3, 4, 9);
-      ctx.fillRect(8, -3, 4, 9);
-      ctx.fillStyle = '#17051b';
-      ctx.fillRect(-7, -4, 14, 10);
-      ctx.fillStyle = '#e879f9';
-      ctx.fillRect(-3, -2, 6, 6);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-1, -1, 2, 2);
-      ctx.fillStyle = '#7e22ce';
-      ctx.fillRect(-13, 9, 5, 3);
-      ctx.fillRect(8, 9, 5, 3);
+      ctx.beginPath(); ctx.moveTo(-r*0.58,-r*0.62); ctx.lineTo(-r*0.28,-r*0.9); ctx.lineTo(r*0.28,-r*0.9); ctx.lineTo(r*0.58,-r*0.55); ctx.lineTo(r*0.5,r*0.45); ctx.lineTo(0,r*0.75); ctx.lineTo(-r*0.5,r*0.45); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#17051b'; ctx.beginPath(); ctx.ellipse(0,-1,r*0.4,r*0.32,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#e879f9'; ctx.fillRect(-4,-4,8,8); ctx.fillStyle = '#ffffff'; ctx.fillRect(-1,-2,3,3);
+      ctx.strokeStyle = '#7e22ce'; ctx.lineWidth = 3;
+      for (const side of [-1,1]) { ctx.beginPath(); ctx.moveTo(side*r*0.55,r*0.35); ctx.lineTo(side*r*0.9,r*0.75); ctx.lineTo(side*r*0.7,r*1.15); ctx.stroke(); }
+      ctx.fillStyle = '#a855f7'; ctx.fillRect(-r*0.72,r*0.45,5,5); ctx.fillRect(r*0.58,r*0.45,5,5);
     }
-
     // SECRET BOSS: O VÓRTICE
     else if (e instanceof BossVortex) {
       const appear = e.spawning ? Math.max(0.02, e.spawnProgress) : 1;
