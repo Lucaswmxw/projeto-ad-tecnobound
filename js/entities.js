@@ -1840,7 +1840,10 @@ class Player extends Entity {
       this.o2DamageTimer = 0;
     } else if (room && room.vacuumBreach) {
       const efficiency = this.modules.chassis?.o2Efficiency || 1.0;
-      this.o2 -= this.o2DepletionRate * efficiency * dt;
+      // Setor 3 é o setor de aprendizado do vácuo: seu dreno é mais lento.
+      // Salas com vácuo fora do Setor 3 têm um dreno um pouco mais agressivo.
+      const sectorO2Rate = room.sector?.id === 3 ? 2.2 : 4.2;
+      this.o2 -= sectorO2Rate * efficiency * dt;
       if (this.o2 <= 0) {
         this.o2 = 0;
         this.o2DamageTimer += dt;
