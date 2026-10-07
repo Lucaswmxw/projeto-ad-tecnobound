@@ -448,8 +448,16 @@ class Projectile {
           try {
             if (window.soundEngine) window.soundEngine.playExplosion();
           } catch (e) {}
+          const splashRadius = 48;
+          const splashTarget = window.gameInstance?.player;
+          if (splashTarget && splashTarget !== target && !splashTarget.dead && window.areHostile(this, splashTarget)) {
+            if (Math.hypot(splashTarget.x - this.x, splashTarget.y - this.y) <= splashRadius) {
+              splashTarget.takeDamage(Math.max(1, Math.round(this.damage * 0.75)), this.owner || this);
+            }
+          }
           if (window.gameInstance) {
             window.gameInstance.addParticle(new Shockwave(this.x, this.y, 75, '#ffaa00'));
+            window.gameInstance.addParticle(new Shockwave(this.x, this.y, 38, '#ef4444', 0.2));
             window.gameInstance.screenShake(4, 0.15);
           }
         }
@@ -1057,6 +1065,104 @@ class RoboRoller extends Enemy {
         this.vy = Math.sin(angle) * this.speed;
       }
     }
+  }
+}
+
+// Sector 4: Red Core Bombardier - heavy explosive ranged unit
+class CoreBombardier extends Enemy {
+  constructor(x, y) {
+    super(x, y, 24, CONSTANTS.FACTIONS.ROBOT);
+    this.maxHp = 58;
+    this.hp = 58;
+    this.speed = 34;
+    this.color = '#ef4444';
+    this.contactDamage = 2;
+    this.attackInterval = 2.0;
+  }
+
+  applyHack(duration) {
+    // Heavy Core Bombardiers are sealed against EMP takeover.
+    return;
+  }
+
+  executeAI(dt, room) {
+    if (!this.target) return;
+    const dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+    const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+
+    if (dist > 290) {
+      this.vx = Math.cos(angle) * this.speed;
+      this.vy = Math.sin(angle) * this.speed;
+    } else if (dist < 210) {
+      this.vx = -Math.cos(angle) * this.speed * 0.8;
+      this.vy = -Math.sin(angle) * this.speed * 0.8;
+    } else {
+      this.vx = 0;
+      this.vy = 0;
+    }
+
+    if (this.attackTimer >= this.attackInterval) {
+      this.attackTimer = 0;
+      const proj = new Projectile(
+        this.x, this.y,
+        Math.cos(angle) * 235, Math.sin(angle) * 235,
+        this.faction, 2, 'missile', '#ffcc33'
+      );
+      proj.owner = this;
+      proj.homing = false;
+      room.projectiles.push(proj);
+      if (window.soundEngine) window.soundEngine.playShoot('missile');
+    }
+  }
+}
+
+// Sector 4: Core Kamikaze - fast explosive hunter, EMP-hackable
+class CoreKamikaze extends Enemy {
+  constructor(x, y) {
+    super(x, y, 13, CONSTANTS.FACTIONS.ROBOT);
+    this.maxHp = 20;
+    this.hp = 20;
+    this.speed = 205;
+    this.color = '#ef4444';
+    this.contactDamage = 1;
+    this.isKamikaze = true;
+    this.detonated = false;
+  }
+
+  executeAI(dt, room) {
+    if (!this.target) return;
+    const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+    const speed = this.isHacked ? this.speed * 0.72 : this.speed;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+  }
+
+  detonate(finalizeDeath = true) {
+    if (this.detonated) return;
+    this.detonated = true;
+    const game = window.gameInstance;
+    const player = game?.player;
+    const radius = 62;
+    if (player && !player.dead) {
+      const d = Math.hypot(player.x - this.x, player.y - this.y);
+      if (d <= radius && window.areHostile(this, player)) player.takeDamage(2, this);
+    }
+    if (game) {
+      game.addParticle(new Shockwave(this.x, this.y, radius, '#ffcc33', 0.32));
+      game.addParticle(new Shockwave(this.x, this.y, radius * 0.62, '#ef4444', 0.22));
+      game.screenShake(4, 0.16);
+    }
+    if (window.soundEngine) window.soundEngine.playExplosion();
+    this.dead = true;
+    if (finalizeDeath && !this.deathProcessed) {
+      this.deathProcessed = true;
+      super.onDeath(this);
+    }
+  }
+
+  onDeath(source) {
+    if (!this.detonated) this.detonate(false);
+    super.onDeath(source);
   }
 }
 
@@ -2090,6 +2196,8 @@ window.RoboDrone = RoboDrone;
 window.RoboSentry = RoboSentry;
 window.RoboRoller = RoboRoller;
 window.VoidPhantom = VoidPhantom;
+window.CoreBombardier = CoreBombardier;
+window.CoreKamikaze = CoreKamikaze;
 window.BossGorgon = BossGorgon;
 window.BossTitan = BossTitan;
 window.BossEntropia = BossEntropia;

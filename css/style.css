@@ -857,3 +857,97 @@ html, body {
   .touch-btn.util-btn { width: 29px; height: 29px; }
   #minimapCanvas { width: 50px; height: 50px; }
 }
+
+/* --- DIRECT, STYLIZED TITLE SCREEN --- */
+.start-screen {
+  background: rgba(2, 4, 8, 0.92);
+}
+.start-shell {
+  width: min(650px, 88vw);
+  padding: 34px 34px 26px;
+  border: 2px solid #183653;
+  background:
+    linear-gradient(135deg, rgba(0,240,255,.055) 0 2px, transparent 2px 100%),
+    #060b12;
+  box-shadow: 8px 8px 0 #02050a, 0 0 35px rgba(0,240,255,.12), inset 0 0 35px rgba(0,0,0,.8);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.start-shell::before,
+.start-shell::after {
+  content: '';
+  position: absolute;
+  width: 70px;
+  height: 2px;
+  background: var(--border-cyan);
+  opacity: .75;
+}
+.start-shell::before { top: 18px; left: 18px; }
+.start-shell::after { bottom: 18px; right: 18px; }
+.start-kicker {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.start-shell h1 {
+  font-size: clamp(36px, 7vw, 64px);
+  line-height: .95;
+  letter-spacing: 8px;
+  color: #e2e8f0;
+  text-shadow: 4px 4px 0 #07131d, 0 0 16px rgba(0,240,255,.28);
+}
+.start-shell h1 span { color: var(--border-cyan); }
+.start-line {
+  width: 55%;
+  height: 3px;
+  margin: 14px auto;
+  background: repeating-linear-gradient(90deg, var(--border-cyan) 0 14px, transparent 14px 20px);
+}
+.start-subtitle {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #cbd5e1;
+}
+.start-brief {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 26px 0 22px;
+}
+.start-brief div {
+  border: 1px solid #203b55;
+  background: #09111a;
+  padding: 9px 5px;
+}
+.start-brief strong {
+  display: block;
+  color: var(--border-cyan);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.start-brief span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 8px;
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+.start-button {
+  min-width: 210px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  padding: 12px 24px;
+}
+.start-footer {
+  margin-top: 18px;
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: #52677b;
+}
+@media (max-width: 600px) {
+  .start-shell { padding: 28px 18px 22px; }
+  .start-brief { grid-template-columns: repeat(2, 1fr); margin: 20px 0 18px; }
+  .start-footer { letter-spacing: 1px; }
+}

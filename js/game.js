@@ -816,19 +816,73 @@ const PixelArt = {
       ctx.fillStyle = '#94a3b8';
       ctx.fillRect(-r*0.7,-r*0.85,5,5); ctx.fillRect(r*0.5,-r*0.85,5,5); ctx.fillRect(-r*0.7,r*0.62,5,5); ctx.fillRect(r*0.5,r*0.62,5,5);
       ctx.strokeStyle = '#bae6fd'; ctx.lineWidth = 2; ctx.stroke();
+    } else if (e instanceof CoreBombardier) {
+      // Sector 4 heavy core unit: compact armored red machine with yellow reactor and launcher.
+      ctx.fillStyle = '#5f1018';
+      ctx.beginPath();
+      ctx.moveTo(-r*0.72,-r); ctx.lineTo(r*0.45,-r); ctx.lineTo(r*0.92,-r*0.48);
+      ctx.lineTo(r*0.86,r*0.62); ctx.lineTo(r*0.35,r); ctx.lineTo(-r*0.7,r*0.82);
+      ctx.lineTo(-r,r*0.2); ctx.lineTo(-r*0.9,-r*0.55); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(-r*0.56,-r*0.58,r*1.12,r*1.05);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(-5,-7,10,14);
+      ctx.fillStyle = '#3f0a0f';
+      ctx.fillRect(-3,-4,6,8);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(-r*0.82,-r*0.15,7,10);
+      ctx.fillRect(r*0.55,-r*0.15,7,10);
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(r*0.7,-5,12,10);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(r*0.86,-3,5,6);
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(-r*0.7,r*0.62,8,5); ctx.fillRect(r*0.45,r*0.62,8,5);
+    } else if (e instanceof CoreKamikaze) {
+      // Small barrel-like red pursuit unit: yellow hazard bands, nose plate and side fins.
+      ctx.fillStyle = '#7f1d1d';
+      ctx.beginPath();
+      ctx.moveTo(-r*0.78,-r*0.65); ctx.lineTo(r*0.55,-r*0.72); ctx.lineTo(r*0.9,0);
+      ctx.lineTo(r*0.55,r*0.72); ctx.lineTo(-r*0.78,r*0.65); ctx.lineTo(-r,0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(-r*0.62,-r*0.62,r*1.18,r*1.24);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(-r*0.48,-r*0.62,5,r*1.24);
+      ctx.fillRect(r*0.28,-r*0.62,5,r*1.24);
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath(); ctx.moveTo(r*0.48,-5); ctx.lineTo(r*0.95,0); ctx.lineTo(r*0.48,5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#3f0a0f'; ctx.fillRect(-r*0.92,-4,5,8);
+      ctx.fillStyle = '#facc15'; ctx.fillRect(-r*0.98,-r*0.7,5,4); ctx.fillRect(-r*0.98,r*0.3,5,4);
     } else if (e instanceof VoidPhantom) {
-      // Spectral alien: hood, tapered body, floating tendrils and luminous eye.
-      ctx.fillStyle = '#4a044e';
-      ctx.beginPath(); ctx.moveTo(-r*0.7,-r*0.85); ctx.lineTo(-r*0.3,-r*1.15); ctx.lineTo(r*0.3,-r*1.15); ctx.lineTo(r*0.72,-r*0.8);
-      ctx.lineTo(r*0.9,-r*0.05); ctx.lineTo(r*0.65,r*0.55); ctx.lineTo(r*0.4,r*0.9); ctx.lineTo(r*0.1,r*0.62);
-      ctx.lineTo(0,r*1.15); ctx.lineTo(-r*0.12,r*0.65); ctx.lineTo(-r*0.5,r*0.95); ctx.lineTo(-r*0.82,r*0.5); ctx.lineTo(-r*0.92,-r*0.1); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#bf55ec';
-      ctx.beginPath(); ctx.moveTo(-r*0.58,-r*0.62); ctx.lineTo(-r*0.28,-r*0.9); ctx.lineTo(r*0.28,-r*0.9); ctx.lineTo(r*0.58,-r*0.55); ctx.lineTo(r*0.5,r*0.45); ctx.lineTo(0,r*0.75); ctx.lineTo(-r*0.5,r*0.45); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#17051b'; ctx.beginPath(); ctx.ellipse(0,-1,r*0.4,r*0.32,0,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#e879f9'; ctx.fillRect(-4,-4,8,8); ctx.fillStyle = '#ffffff'; ctx.fillRect(-1,-2,3,3);
-      ctx.strokeStyle = '#7e22ce'; ctx.lineWidth = 3;
-      for (const side of [-1,1]) { ctx.beginPath(); ctx.moveTo(side*r*0.55,r*0.35); ctx.lineTo(side*r*0.9,r*0.75); ctx.lineTo(side*r*0.7,r*1.15); ctx.stroke(); }
-      ctx.fillStyle = '#a855f7'; ctx.fillRect(-r*0.72,r*0.45,5,5); ctx.fillRect(r*0.58,r*0.45,5,5);
+      // Simplified void herald: a smaller, sharper version of the sector-3 boss silhouette.
+      ctx.fillStyle = '#2e1242';
+      ctx.beginPath();
+      ctx.moveTo(0,-r*1.25); ctx.lineTo(r*0.48,-r*0.9); ctx.lineTo(r*0.72,-r*0.35);
+      ctx.lineTo(r*0.58,r*0.55); ctx.lineTo(r*0.28,r*1.0); ctx.lineTo(0,r*0.68);
+      ctx.lineTo(-r*0.28,r*1.0); ctx.lineTo(-r*0.58,r*0.55); ctx.lineTo(-r*0.72,-r*0.35);
+      ctx.lineTo(-r*0.48,-r*0.9); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#7e22ce'; ctx.lineWidth = 2.5; ctx.stroke();
+
+      ctx.fillStyle = '#6b21a8';
+      ctx.beginPath();
+      ctx.moveTo(-r*0.42,-r*0.55); ctx.lineTo(-r*0.18,-r*0.88); ctx.lineTo(r*0.18,-r*0.88);
+      ctx.lineTo(r*0.42,-r*0.55); ctx.lineTo(r*0.32,r*0.48); ctx.lineTo(0,r*0.7);
+      ctx.lineTo(-r*0.32,r*0.48); ctx.closePath(); ctx.fill();
+
+      ctx.fillStyle = '#100617';
+      ctx.beginPath(); ctx.ellipse(0,-r*0.08,r*0.38,r*0.3,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#e879f9';
+      ctx.fillRect(-4,-5,8,8);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(-1,-4,3,3);
+
+      ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2;
+      for (const side of [-1,1]) {
+        ctx.beginPath(); ctx.moveTo(side*r*0.35,r*0.35); ctx.lineTo(side*r*0.7,r*0.8); ctx.lineTo(side*r*0.5,r*1.25); ctx.stroke();
+      }
+      ctx.fillStyle = '#d946ef';
+      ctx.fillRect(-r*0.58,r*0.35,4,7); ctx.fillRect(r*0.54,r*0.35,4,7);
     }
     // SECRET BOSS: O VÓRTICE
     else if (e instanceof BossVortex) {
@@ -906,14 +960,16 @@ const PixelArt = {
     // BOSSES
     // ==========================================
     else if (e instanceof BossGorgon) {
-      // Sector 1 Boss: Gorgon - Patriarch of the Alien Hive
-      ctx.fillStyle = '#14532d';
+      // Sector 1 Boss: Gorgon - tall, sharp giant insect silhouette.
+      ctx.fillStyle = '#0b3b24';
       ctx.beginPath();
-      ctx.ellipse(0, 0, e.radius, e.radius * 0.8, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#39ff14';
-      ctx.lineWidth = 4;
-      ctx.stroke();
+      ctx.moveTo(-e.radius*0.55,-e.radius*1.05); ctx.lineTo(-e.radius*0.25,-e.radius*1.28);
+      ctx.lineTo(e.radius*0.18,-e.radius*1.12); ctx.lineTo(e.radius*0.58,-e.radius*0.78);
+      ctx.lineTo(e.radius*0.82,-e.radius*0.18); ctx.lineTo(e.radius*0.66,e.radius*0.62);
+      ctx.lineTo(e.radius*0.3,e.radius*1.08); ctx.lineTo(0,e.radius*0.78);
+      ctx.lineTo(-e.radius*0.3,e.radius*1.08); ctx.lineTo(-e.radius*0.66,e.radius*0.62);
+      ctx.lineTo(-e.radius*0.82,-e.radius*0.18); ctx.lineTo(-e.radius*0.7,-e.radius*0.72); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 4; ctx.stroke();
 
       // Huge Spiked Curved Horns
       ctx.fillStyle = '#166534';
@@ -1762,6 +1818,12 @@ class Game {
         this.player.y += Math.sin(angle) * (overlap * 0.6);
         enemy.x -= Math.cos(angle) * (overlap * 0.4);
         enemy.y -= Math.sin(angle) * (overlap * 0.4);
+
+        // Kamikaze units detonate on hostile contact instead of behaving like a normal rammer.
+        if (enemy.isKamikaze && window.areHostile(this.player, enemy)) {
+          enemy.detonate();
+          continue;
+        }
 
         // Contact Damage
         if (window.areHostile(this.player, enemy)) {

@@ -197,11 +197,15 @@ class Room {
             spawnedEnemy = new BioSpitter(ex, ey);
           }
         } else {
-          // Sector 4: Ship Core (Inter-faction Warzone)
+          // Sector 4: Ship Core - red/yellow core units join the warzone.
           const roll = Math.random();
-          if (roll < 0.35) {
-            spawnedEnemy = new RoboDrone(ex, ey);
+          if (roll < 0.24) {
+            spawnedEnemy = new CoreBombardier(ex, ey);
+          } else if (roll < 0.48) {
+            spawnedEnemy = new CoreKamikaze(ex, ey);
           } else if (roll < 0.70) {
+            spawnedEnemy = new RoboDrone(ex, ey);
+          } else if (roll < 0.85) {
             spawnedEnemy = new BioSpitter(ex, ey);
           } else {
             spawnedEnemy = new VoidPhantom(ex, ey);
