@@ -1309,6 +1309,7 @@ class Player extends Entity {
     // Inventory
     this.scrap = 20;
     this.modulesInventory = [];
+    this.loadoutChoices = [];
 
     // Equipped Modules
     this.modules = {
@@ -1807,9 +1808,16 @@ class Player extends Entity {
       if (window.soundEngine) window.soundEngine.playPickup('scrap');
       if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${p.amount}% O2`, '#38bdf8'));
     } else if (p.type === 'module_item') {
+      // QoL: keep only the two most recent loadout choices. Mutations are
+      // intentionally independent and are never removed by this limit.
+      if (!Array.isArray(this.modulesInventory)) this.modulesInventory = [];
+      if (!Array.isArray(this.loadoutChoices)) this.loadoutChoices = [];
       this.modulesInventory.push(p.module);
+      while (this.modulesInventory.length > 2) this.modulesInventory.shift();
+      this.loadoutChoices.push(p.module);
+      while (this.loadoutChoices.length > 2) this.loadoutChoices.shift();
       this.equipModule(p.module);
-      if (game) game.addParticle(new FloatingText(this.x, this.y - 30, `MÓDULO: ${p.module.name}`, '#00f0ff'));
+      if (game) game.addParticle(new FloatingText(this.x, this.y - 30, `LOADOUT: ${p.module.name}`, '#00f0ff'));
     }
   }
 }

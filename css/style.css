@@ -84,6 +84,27 @@ html, body {
   cursor: crosshair;
 }
 
+
+/* Quality-of-life overlays */
+#vacuumVignette {
+  position: absolute; inset: 0; pointer-events: none; z-index: 18;
+  opacity: 0; transition: opacity .35s ease;
+  box-shadow: inset 0 0 95px 30px rgba(8, 2, 18, .88);
+}
+#vacuumVignette.active { opacity: 1; }
+#vacuumVignette.light { box-shadow: inset 0 0 75px 20px rgba(25, 8, 45, .58); }
+#sectorTransitionOverlay {
+  position:absolute; inset:0; z-index:60; pointer-events:none; opacity:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.94); transition:opacity .28s ease;
+}
+#sectorTransitionOverlay.active { opacity:1; }
+.sector-transition-title { font-size:24px; letter-spacing:4px; font-weight:900; color:var(--border-cyan); text-align:center; text-shadow:0 0 14px currentColor; }
+.sector-transition-subtitle { margin-top:8px; font-size:10px; letter-spacing:2px; color:#cbd5e1; text-align:center; max-width:80%; }
+#sectorBanner { transition: opacity .45s ease, transform .45s ease; }
+#sectorBanner.sector-enter { opacity:1; transform:translateY(0); }
+#sectorBanner.sector-hide { opacity:0; transform:translateY(-8px); }
+
 /* --- RETRO PIXEL HUD OVERLAY --- */
 #hudOverlay {
   position: absolute;
@@ -694,7 +715,7 @@ html, body {
   }
 
   .hud-btn {
-    width: 34px;
+    width: 44px;
     height: 22px;
     padding: 2px;
     justify-content: center;
@@ -703,10 +724,10 @@ html, body {
     letter-spacing: 0;
   }
 
-  #btnOpenLoadout::after { content: 'LOAD'; font-size: 7px; }
+  #btnOpenLoadout::after { content: 'LOADOUT'; font-size: 6px; }
   #btnToggleAudio::after { content: 'BGM'; font-size: 7px; }
   #btnToggleSfx::after { content: 'SFX'; font-size: 7px; }
-  #btnPauseGame::after { content: 'PAUS'; font-size: 7px; }
+  #btnPauseGame::after { content: 'PAUSE'; font-size: 6px; }
 
   #minimapContainer {
     padding: 1px;
@@ -810,11 +831,11 @@ html, body {
   .hud-left { max-width: 31%; }
   .hud-left .pixel-badge:nth-child(3) { display: none; }
   #minimapCanvas { width: 54px; height: 54px; }
-  .hud-btn { width: 30px; height: 20px; }
-  #btnOpenLoadout::after { content: 'LD'; }
-  #btnToggleAudio::after { content: 'B'; }
-  #btnToggleSfx::after { content: 'S'; }
-  #btnPauseGame::after { content: 'P'; }
+  .hud-btn { width: 42px; height: 20px; }
+  #btnOpenLoadout::after { content: 'LOADOUT'; font-size: 5px; }
+  #btnToggleAudio::after { content: 'BGM'; font-size: 6px; }
+  #btnToggleSfx::after { content: 'SFX'; font-size: 6px; }
+  #btnPauseGame::after { content: 'PAUSE'; font-size: 5px; }
   .weapon-card { font-size: 6px; }
   #activeWeaponName { max-width: 62px; }
   #joystickZone { width: 72px; height: 72px; }

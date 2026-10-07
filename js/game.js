@@ -1322,6 +1322,8 @@ class Game {
     this.animationFrameId = null;
     this.validationTimer = 0;
     this.maxParticles = 120;
+    this.sectorIntroTimer = 0;
+    this.sectorIntroDuration = 1.65;
 
     this.initUIListeners();
   }
@@ -1424,6 +1426,8 @@ class Game {
       window.soundEngine.setMusicTheme(this.sector.ambientMusic);
     }
     this.updateSectorBanner();
+    this.sectorIntroTimer = this.sectorIntroDuration;
+    this.showSectorTransition();
   }
 
   updateSectorBanner() {
@@ -1432,7 +1436,22 @@ class Game {
       banner.textContent = this.sector.name.toUpperCase();
       banner.style.color = this.sector.accentColor;
       banner.style.borderColor = this.sector.accentColor;
+      banner.classList.remove('sector-hide');
+      banner.classList.add('sector-enter');
     }
+  }
+
+  showSectorTransition() {
+    const overlay = document.getElementById('sectorTransitionOverlay');
+    const title = document.getElementById('sectorTransitionTitle');
+    const subtitle = document.getElementById('sectorTransitionSubtitle');
+    const banner = document.getElementById('sectorBanner');
+    if (!overlay) return;
+    if (title) { title.textContent = this.sector.name.toUpperCase(); title.style.color = this.sector.accentColor; }
+    if (subtitle) subtitle.textContent = this.sector.subtitle || '';
+    overlay.classList.add('active');
+    if (banner) banner.classList.remove('sector-enter');
+    window.setTimeout(() => overlay.classList.remove('active'), 950);
   }
 
   screenShake(intensity, duration) {
@@ -1822,14 +1841,16 @@ class Game {
     const slotsEl = document.getElementById('equippedSlots');
     if (slotsEl && this.player) {
       slotsEl.innerHTML = '';
-      for (let [slot, mod] of Object.entries(this.player.modules)) {
+      const choices = Array.isArray(this.player.loadoutChoices) ? this.player.loadoutChoices.slice(-2) : [];
+      for (let i = 0; i < 2; i++) {
+        const mod = choices[i];
         const div = document.createElement('div');
-        div.className = 'slot-box equipped';
+        div.className = 'slot-box equipped loadout-choice';
         div.innerHTML = `
-          <div class="slot-name">${slot.toUpperCase()}</div>
+          <div class="slot-name">LOADOUT ${i + 1}</div>
           <div style="font-size: 13px; margin: 4px 0;">${mod ? window.Icons.get(mod.iconKey) : ''}</div>
-          <div style="font-weight: bold; color: #fff;">${mod ? mod.name : 'VAZIO'}</div>
-          <div style="font-size: 9px; color: #94a3b8; margin-top: 4px;">${mod ? mod.description : ''}</div>
+          <div style="font-weight: bold; color: #fff;">${mod ? mod.name : 'AGUARDANDO HABILIDADE'}</div>
+          <div style="font-size: 9px; color: #94a3b8; margin-top: 4px;">${mod ? mod.description : 'A próxima habilidade ocupará este espaço.'}</div>
         `;
         slotsEl.appendChild(div);
       }
@@ -1838,10 +1859,10 @@ class Game {
     const invEl = document.getElementById('inventoryModules');
     if (invEl && this.player) {
       invEl.innerHTML = '';
-      if (this.player.modulesInventory.length === 0) {
+      if (!Array.isArray(this.player.loadoutChoices) || this.player.loadoutChoices.length === 0) {
         invEl.innerHTML = '<p style="color: #64748b; font-size: 11px;">Nenhum módulo sobressalente no inventário.</p>';
       } else {
-        this.player.modulesInventory.forEach(m => {
+        this.player.loadoutChoices.slice(-2).forEach(m => {
           const card = document.createElement('div');
           card.className = 'module-badge-card';
           card.innerHTML = `
@@ -2131,6 +2152,14 @@ class Game {
       room.hazards = room.hazards.filter(h => !h.duration || h.duration > 0);
     }
 
+    if (this.sectorIntroTimer > 0) {
+      this.sectorIntroTimer -= dt;
+      if (this.sectorIntroTimer <= 0) {
+        const banner = document.getElementById('sectorBanner');
+        if (banner) { banner.classList.remove('sector-enter'); banner.classList.add('sector-hide'); }
+      }
+    }
+
     // 7. Particles
     for (let p of this.particles) {
       p.update(dt);
@@ -2206,7 +2235,13 @@ class Game {
       o2Val.textContent = `${pct}%`;
       o2Bar.style.width = `${pct}%`;
 
-      const inVacuum = this.dungeon?.currentRoom?.vacuumBreach || false;
+      const room = this.dungeon?.currentRoom;
+      const inVacuum = room?.vacuumBreach || false;
+      const vignette = document.getElementById('vacuumVignette');
+      if (vignette) {
+        vignette.classList.toggle('active', !!inVacuum);
+        vignette.classList.toggle('light', this.currentSectorIndex === 2);
+      }
       if (o2Widget) {
         if (inVacuum || pct < 30) {
           o2Widget.classList.add('vacuum-alert');

@@ -12,6 +12,8 @@
   <div id="gameWrapper">
     <!-- CRT Scanline & Grain overlay -->
     <div id="crtOverlay"></div>
+    <div id="vacuumVignette" aria-hidden="true"></div>
+    <div id="sectorTransitionOverlay" aria-hidden="true"><div class="sector-transition-title" id="sectorTransitionTitle">SETOR 01</div><div class="sector-transition-subtitle" id="sectorTransitionSubtitle"></div></div>
 
     <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
@@ -55,10 +57,10 @@
 
         <div class="hud-right">
           <div class="hud-buttons">
-            <button class="hud-btn" id="btnOpenLoadout">LOADOUT [TAB]</button>
+            <button class="hud-btn" id="btnOpenLoadout">LOADOUT</button>
             <button class="hud-btn" id="btnToggleAudio">BGM: ON</button>
             <button class="hud-btn" id="btnToggleSfx">SFX: ON</button>
-            <button class="hud-btn" id="btnPauseGame">PAUSA [P]</button>
+            <button class="hud-btn" id="btnPauseGame">PAUSE</button>
           </div>
 
           <!-- Minimap -->
@@ -86,8 +88,8 @@
       </div>
       <div id="touchActionZone" class="touch-interactive">
         <div class="touch-btn-column">
-          <button class="touch-btn util-btn" id="btnTouchInteract">LOAD</button>
-          <button class="touch-btn util-btn" id="btnTouchPause">PAUS</button>
+          <button class="touch-btn util-btn" id="btnTouchInteract">LOADOUT</button>
+          <button class="touch-btn util-btn" id="btnTouchPause">PAUSE</button>
         </div>
         <button class="touch-btn dash-btn" id="btnTouchDash">DASH<br><span style="font-size:9px;">[ESQ]</span></button>
         <button class="touch-btn hack-btn" id="btnTouchHack">HACK<br><span style="font-size:9px;">[EMP]</span></button>
@@ -134,7 +136,7 @@
 
         <div class="slots-container" id="equippedSlots"></div>
 
-        <h3 style="font-size: 11px; color: var(--border-cyan); margin: 12px 0 6px 0; text-align: left;">MÓDULOS NO INVENTÁRIO</h3>
+        <h3 style="font-size: 11px; color: var(--border-cyan); margin: 12px 0 6px 0; text-align: left;">HABILIDADES / LOADOUTS DISPONÍVEIS</h3>
         <div id="inventoryModules" style="max-height: 110px; overflow-y: auto;"></div>
 
         <h3 style="font-size: 11px; color: var(--border-green); margin: 12px 0 6px 0; text-align: left;">MUTAÇÕES ALIENÍGENAS ATIVAS</h3>
