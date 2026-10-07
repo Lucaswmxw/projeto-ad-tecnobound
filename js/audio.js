@@ -160,7 +160,7 @@ class SoundEngine {
     // Throttle the SFX and cap concurrent nodes so audio can never become the
     // source of a gameplay freeze.
     const now = this.ctx.currentTime;
-    if ((now - this.lastHitSfxTime) < 0.025 || this.activeSfx >= this.maxActiveSfx) return;
+    if ((now - this.lastHitSfxTime) < 0.12 || this.activeSfx >= this.maxActiveSfx) return;
     this.lastHitSfxTime = now;
     this.activeSfx++;
     this.ensureContext();

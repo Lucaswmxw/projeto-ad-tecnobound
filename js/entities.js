@@ -204,7 +204,7 @@ class Projectile {
     this.type = type; // 'plasma', 'scatter', 'rail', 'missile', 'lightning'
     this.color = color;
     this.radius = type === 'voidblackhole' ? 7 : (type === 'missile' ? 6 : (type === 'rail' ? 4 : 5));
-    this.life = type === 'voidblackhole' ? 4.0 : (type === 'rail' ? 1.0 : (type === 'scatter' ? 0.45 : 2.5));
+    this.life = type === 'voidblackhole' ? 3.5 : (type === 'rail' ? 1.0 : (type === 'scatter' ? 0.45 : 2.5));
     this.maxLife = this.life;
     this.dead = false;
     this.pierce = false;
@@ -419,7 +419,7 @@ class Projectile {
           this.y = target.y;
           this.vx = 0;
           this.vy = 0;
-          this.life = 4.0;
+          this.life = 3.5;
           this.tickTimer = 0;
           if (window.gameInstance) window.gameInstance.addParticle(new Shockwave(target.x, target.y, 22, '#d8d8e8', 0.2));
           break;
@@ -724,7 +724,7 @@ class Enemy extends Entity {
     this.isHacked = false;
     this.hackDuration = 0;
     this.attackTimer = Math.random() * 2;
-    this.attackInterval = 2.0;
+    this.attackInterval = 2.7 + Math.random() * 2.2;
     this.target = null;
     this.speed = 100;
     this.isBoss = false;
@@ -850,8 +850,12 @@ class Enemy extends Entity {
           room.pickups.push({ x: this.x, y: this.y, type: 'hp', amount: 1, size: 8 });
         } else if (dropRoll < 0.78) {
           room.pickups.push({ x: this.x, y: this.y, type: 'shield', amount: 1, size: 8 });
-        } else if (dropRoll < 0.90 && game.sector.hasVacuum) {
-          room.pickups.push({ x: this.x, y: this.y, type: 'o2', amount: 30, size: 8 });
+        } else if (game.sector.hasVacuum) {
+          // Sector 3 is intentionally tighter on O2 pickups for progression balance.
+          const o2Threshold = game.sector.id === 3 ? 0.96 : 0.90;
+          if (dropRoll < o2Threshold) {
+            room.pickups.push({ x: this.x, y: this.y, type: 'o2', amount: 30, size: 8 });
+          }
         }
       }
     }
@@ -866,8 +870,8 @@ class Enemy extends Entity {
 class BioSwarmer extends Enemy {
   constructor(x, y) {
     super(x, y, 14, CONSTANTS.FACTIONS.ALIEN);
-    this.maxHp = 14;
-    this.hp = 14;
+    this.maxHp = 15;
+    this.hp = 15;
     this.speed = 150;
     this.color = '#39ff14';
     this.contactDamage = 1;
@@ -885,8 +889,8 @@ class BioSwarmer extends Enemy {
 class BioSpitter extends Enemy {
   constructor(x, y) {
     super(x, y, 18, CONSTANTS.FACTIONS.ALIEN);
-    this.maxHp = 22;
-    this.hp = 22;
+    this.maxHp = 24;
+    this.hp = 24;
     this.speed = 75;
     this.color = '#22c55e';
     this.contactDamage = 1;
@@ -929,8 +933,8 @@ class BioSpitter extends Enemy {
 class BioBrood extends Enemy {
   constructor(x, y) {
     super(x, y, 24, CONSTANTS.FACTIONS.ALIEN);
-    this.maxHp = 45;
-    this.hp = 45;
+    this.maxHp = 50;
+    this.hp = 50;
     this.speed = 45;
     this.color = '#15803d';
     this.contactDamage = 2;
@@ -958,8 +962,8 @@ class BioBrood extends Enemy {
 class RoboDrone extends Enemy {
   constructor(x, y) {
     super(x, y, 16, CONSTANTS.FACTIONS.ROBOT);
-    this.maxHp = 18;
-    this.hp = 18;
+    this.maxHp = 20;
+    this.hp = 20;
     this.speed = 120;
     this.color = '#00f0ff';
     this.contactDamage = 1;
@@ -995,8 +999,8 @@ class RoboDrone extends Enemy {
 class RoboSentry extends Enemy {
   constructor(x, y) {
     super(x, y, 20, CONSTANTS.FACTIONS.ROBOT);
-    this.maxHp = 35;
-    this.hp = 35;
+    this.maxHp = 39;
+    this.hp = 39;
     this.speed = 0; // Stationary
     this.color = '#38bdf8';
     this.contactDamage = 1;
@@ -1030,8 +1034,8 @@ class RoboSentry extends Enemy {
 class RoboRoller extends Enemy {
   constructor(x, y) {
     super(x, y, 18, CONSTANTS.FACTIONS.ROBOT);
-    this.maxHp = 38;
-    this.hp = 38;
+    this.maxHp = 42;
+    this.hp = 42;
     this.speed = 70;
     this.color = '#0284c7';
     this.contactDamage = 2;
@@ -1072,12 +1076,11 @@ class RoboRoller extends Enemy {
 class CoreBombardier extends Enemy {
   constructor(x, y) {
     super(x, y, 24, CONSTANTS.FACTIONS.ROBOT);
-    this.maxHp = 58;
-    this.hp = 58;
+    this.maxHp = 64;
+    this.hp = 64;
     this.speed = 34;
     this.color = '#ef4444';
     this.contactDamage = 2;
-    this.attackInterval = 2.0;
   }
 
   applyHack(duration) {
@@ -1120,8 +1123,8 @@ class CoreBombardier extends Enemy {
 class CoreKamikaze extends Enemy {
   constructor(x, y) {
     super(x, y, 13, CONSTANTS.FACTIONS.ROBOT);
-    this.maxHp = 20;
-    this.hp = 20;
+    this.maxHp = 22;
+    this.hp = 22;
     this.speed = 205;
     this.color = '#ef4444';
     this.contactDamage = 1;
@@ -1170,13 +1173,13 @@ class CoreKamikaze extends Enemy {
 class VoidPhantom extends Enemy {
   constructor(x, y) {
     super(x, y, 16, CONSTANTS.FACTIONS.VOID);
-    this.maxHp = 28;
-    this.hp = 28;
+    this.maxHp = 31;
+    this.hp = 31;
     this.speed = 85;
     this.color = '#bf55ec';
     this.contactDamage = 1;
     this.teleportTimer = 0;
-    this.attackInterval = 2.0;
+    this.attackInterval = 2.7 + Math.random() * 2.2;
   }
 
   executeAI(dt, room) {
@@ -1262,7 +1265,10 @@ class BossVortex extends Enemy {
     if (this.attackTimer < this.attackInterval) return;
 
     this.attackTimer = 0;
-    this.attackPattern = Math.floor(Math.random() * 4);
+    let nextPattern = Math.floor(Math.random() * 4);
+    if (nextPattern === this.lastAttackPattern) nextPattern = (nextPattern + 1 + Math.floor(Math.random() * 3)) % 4;
+    this.attackPattern = nextPattern;
+    this.lastAttackPattern = nextPattern;
 
     if (this.attackPattern === 0) {
       // Absorption: a brief visible rotating aura window.
@@ -1276,6 +1282,9 @@ class BossVortex extends Enemy {
     } else {
       this.teleportInRoom(room);
     }
+
+    // Every attack gets a different delay, making the cadence harder to predict.
+    this.attackInterval = 2.7 + Math.random() * 2.2;
   }
 
   update(dt, room) {
@@ -1302,6 +1311,8 @@ class BossVortex extends Enemy {
       }
       const minion = new Ctor(x, y);
       minion.darkVariant = true;
+      minion.color = '#08080c';
+      minion.contactDamage = Math.max(1, minion.contactDamage || 1);
       room.enemies.push(minion);
     }
     if (window.soundEngine) window.soundEngine.playVortexMinions();
@@ -1360,8 +1371,8 @@ class BossGorgon extends Enemy {
     super(x, y, 42, CONSTANTS.FACTIONS.ALIEN);
     this.isBoss = true;
     this.bossName = "GORGON: PATRIARCA BIOMASSA";
-    this.maxHp = 220;
-    this.hp = 220;
+    this.maxHp = 242;
+    this.hp = 242;
     this.speed = 60;
     this.color = '#39ff14';
     this.contactDamage = 2;
@@ -1406,12 +1417,12 @@ class BossTitan extends Enemy {
     super(x, y, 46, CONSTANTS.FACTIONS.ROBOT);
     this.isBoss = true;
     this.bossName = "TITÃ MK-IV: GUARDIÃO CIBERNÉTICO";
-    this.maxHp = 320;
-    this.hp = 320;
+    this.maxHp = 352;
+    this.hp = 352;
     this.speed = 45;
     this.color = '#00f0ff';
     this.contactDamage = 3;
-    this.attackInterval = 2.0;
+    this.attackInterval = 2.7 + Math.random() * 2.2;
     this.attackPattern = 0;
   }
 
@@ -1471,8 +1482,8 @@ class BossEntropia extends Enemy {
     super(x, y, 48, CONSTANTS.FACTIONS.VOID);
     this.isBoss = true;
     this.bossName = "ENTROPIA: SINGULARIDADE DO VÁCUO";
-    this.maxHp = 420;
-    this.hp = 420;
+    this.maxHp = 462;
+    this.hp = 462;
     this.speed = 50;
     this.color = '#bf55ec';
     this.contactDamage = 3;
@@ -1521,8 +1532,8 @@ class BossArchon extends Enemy {
     super(x, y, 54, CONSTANTS.FACTIONS.VOID);
     this.isBoss = true;
     this.bossName = "ARCHON: SOBERANO DO NÚCLEO";
-    this.maxHp = 600;
-    this.hp = 600;
+    this.maxHp = 660;
+    this.hp = 660;
     this.speed = 55;
     this.color = '#ff0055';
     this.contactDamage = 3;
@@ -2051,7 +2062,7 @@ class Player extends Entity {
   fireWeapon(weapon, room, damageMult) {
     if (!room) return;
     const bulletCount = weapon.bulletCount || 1;
-    const baseDmg = (weapon.damage || 14) * damageMult;
+    const baseDmg = (weapon.damage || 14) * damageMult * (this.mutations.voidbound ? 0.78 : 1);
 
     for (let i = 0; i < bulletCount; i++) {
       let shotAngle = this.angle;

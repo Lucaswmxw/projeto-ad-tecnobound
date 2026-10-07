@@ -1018,7 +1018,9 @@ html, body {
 
   :fullscreen #gameWrapper {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
+    min-width: 100vw;
+    min-height: 100dvh;
     max-width: none;
     max-height: none;
     border: 0;
@@ -1026,7 +1028,14 @@ html, body {
 
   :fullscreen #gameCanvas {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
+  }
+
+  :fullscreen body {
+    width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
+    margin: 0;
   }
 }
 

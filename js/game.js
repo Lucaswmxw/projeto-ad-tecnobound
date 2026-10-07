@@ -692,6 +692,10 @@ const PixelArt = {
     ctx.save();
     ctx.translate(Math.round(e.x), Math.round(e.y));
 
+    if (e.darkVariant) {
+      ctx.filter = 'brightness(0.18) contrast(1.35) saturate(0.35)';
+    }
+
     // Flash pure white on damage
     if (e.flashTimer > 0) {
       ctx.fillStyle = '#ffffff';
@@ -2073,7 +2077,7 @@ class Game {
   }
 
   openMutagenModal() {
-    const pool = CONSTANTS.MUTATIONS.filter(m => !this.player.mutations[m.id]);
+    const pool = CONSTANTS.MUTATIONS.filter(m => m.id !== 'voidbound' && !this.player.mutations[m.id]);
     if (pool.length === 0) return;
 
     this.pendingMutation = pool[Math.floor(Math.random() * pool.length)];
@@ -2459,18 +2463,29 @@ class Game {
     if (room.hazards) {
       for (let haz of room.hazards) {
         if (haz.duration) haz.duration -= dt;
-        if (haz.type === 'acid_pool' && !this.player.modules.chassis?.acidImmunity) {
-          if (this.player.x >= haz.x && this.player.x <= haz.x + haz.w &&
-              this.player.y >= haz.y && this.player.y <= haz.y + haz.h) {
-            this.player.takeDamage(1, null);
-          }
-        }
-        if (room.enemies) {
-          room.enemies.forEach(e => {
-            if (e.x >= haz.x && e.x <= haz.x + haz.w && e.y >= haz.y && e.y <= haz.y + haz.h) {
-              e.takeDamage(15 * dt, null);
+        if (haz.type === 'acid_pool') {
+          // Corrosive pools tick only once every 0.5s instead of dealing
+          // continuous per-frame damage. This keeps the mutation useful
+          // without allowing it to melt targets excessively fast.
+          haz.damageTimer = Math.max(0, (haz.damageTimer ?? 0) - dt);
+          if (haz.damageTimer <= 0) {
+            haz.damageTimer = 0.5;
+
+            if (!this.player.modules.chassis?.acidImmunity &&
+                this.player.x >= haz.x && this.player.x <= haz.x + haz.w &&
+                this.player.y >= haz.y && this.player.y <= haz.y + haz.h) {
+              this.player.takeDamage(1, null);
             }
-          });
+
+            if (room.enemies) {
+              room.enemies.forEach(e => {
+                if (e.x >= haz.x && e.x <= haz.x + haz.w &&
+                    e.y >= haz.y && e.y <= haz.y + haz.h) {
+                  e.takeDamage(15, null);
+                }
+              });
+            }
+          }
         }
       }
       room.hazards = room.hazards.filter(h => !h.duration || h.duration > 0);
