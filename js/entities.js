@@ -1725,8 +1725,11 @@ class Player extends Entity {
       }
     }
 
-    // Oxygen in Vacuum Zones
-    if (room && room.vacuumBreach) {
+    // Oxygen in Vacuum Zones. The secret VÓRTICE room is exempt: entering it
+    // freezes the current oxygen level and applies no depletion or recovery.
+    if (room?.type === 'VORTEX') {
+      this.o2DamageTimer = 0;
+    } else if (room && room.vacuumBreach) {
       const efficiency = this.modules.chassis?.o2Efficiency || 1.0;
       this.o2 -= this.o2DepletionRate * efficiency * dt;
       if (this.o2 <= 0) {

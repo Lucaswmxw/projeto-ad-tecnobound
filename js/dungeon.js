@@ -208,11 +208,11 @@ class Room {
           }
         }
 
-        // EASTER EGG: 5% chance for a regular enemy to become GOLDEN.
+        // EASTER EGG: 1% chance for a regular enemy to become GOLDEN.
         // This runs only in normal combat/hazard rooms, so bosses can never
         // be replaced by the golden variant. The enemy keeps its original
         // class, AI, stats and collision behavior.
-        if (spawnedEnemy && Math.random() < 0.05) {
+        if (spawnedEnemy && Math.random() < 0.01) {
           spawnedEnemy.isGolden = true;
           spawnedEnemy.goldenJinglePlayed = false;
           if (window.soundEngine) window.soundEngine.playGoldenJingle();
@@ -371,10 +371,10 @@ class Dungeon {
     const shopPos = takeFromPool(deadEnds);
     if (shopPos) reservedPositions.set(`${shopPos.x},${shopPos.y}`, 'FABRICATOR');
 
-    // SECRET EASTER EGG: 20% chance per eligible run to create one VÓRTICE room.
-    // It is never generated in Sector 3 (Vacuum), and it replaces only a normal
-    // room so all mandatory progression rooms remain untouched.
-    const vortexEligible = this.sector.id !== 3 && this.secretVortexSector === this.sector.id;
+    // SECRET EASTER EGG: 12% chance per run to create one VÓRTICE room.
+    // It may appear in any sector, including Sector 3, where oxygen drain is
+    // disabled specifically inside this special room.
+    const vortexEligible = this.secretVortexSector === this.sector.id;
     if (vortexEligible) {
       const vortexCandidates = candidatePool.filter(p => !reservedPositions.has(`${p.x},${p.y}`));
       if (vortexCandidates.length > 0) {

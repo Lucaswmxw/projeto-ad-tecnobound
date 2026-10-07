@@ -711,225 +711,59 @@ const PixelArt = {
       ctx.stroke();
     }
 
-    // Facing angle towards target or movement
-    const faceAngle = (e.vx !== 0 || e.vy !== 0) ? Math.atan2(e.vy, e.vx) : (e.target ? Math.atan2(e.target.y - e.y, e.target.x - e.x) : 0);
-    ctx.rotate(faceAngle);
-
-    // ==========================================
-    // SECTOR 1: ALIEN INFESTATION
-    // ==========================================
+    // Sector 1: Aliens
     if (e instanceof BioSwarmer) {
-      // Bio-Swarmer: Alien Skitterer with segmented spiny abdomen, mandibles, compound eyes
-      // Carapace Body
-      ctx.fillStyle = '#166534';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, e.radius, e.radius * 0.75, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#14532d';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Segmented Chitin Ridges
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(-6, -4, 4, 8);
-      ctx.fillRect(0, -5, 4, 10);
-
-      // Sharp Pincer Mandibles
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(e.radius - 2, -5, 5, 2);
-      ctx.fillRect(e.radius - 2, 3, 5, 2);
-
-      // Glowing Compound Alien Eyes
       ctx.fillStyle = '#39ff14';
-      ctx.fillRect(4, -3, 3, 2);
-      ctx.fillRect(4, 1, 3, 2);
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(6, -2, 2, 4);
-
-      // Animated Twitching Skitter Legs
-      ctx.strokeStyle = '#166534';
-      ctx.lineWidth = 2;
-      [-4, 2].forEach(lx => {
-        ctx.beginPath();
-        ctx.moveTo(lx, -e.radius * 0.7);
-        ctx.lineTo(lx - 4, -e.radius * 1.3);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(lx, e.radius * 0.7);
-        ctx.lineTo(lx - 4, e.radius * 1.3);
-        ctx.stroke();
-      });
-    } else if (e instanceof BioSpitter) {
-      // Bio-Spitter: Heavy Acidic Artillery Beast
-      // Heavy Chitinous Crest Body
-      ctx.fillStyle = '#14532d';
-      ctx.fillRect(-e.radius, -e.radius * 0.8, e.radius * 1.8, e.radius * 1.6);
-      ctx.strokeStyle = '#166534';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-e.radius, -e.radius * 0.8, e.radius * 1.8, e.radius * 1.6);
-
-      // Translucent Pulsating Spore Acid Sac on dorsal
-      ctx.fillStyle = '#22c55e';
       ctx.beginPath();
-      ctx.arc(-4, 0, e.radius * 0.7, 0, Math.PI * 2);
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.fillRect(-3, -2, 2, 2);
+      ctx.fillRect(2, -2, 2, 2);
+    } else if (e instanceof BioSpitter) {
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
+      ctx.fillStyle = '#ff0055';
+      ctx.fillRect(-3, -3, 6, 6);
+    } else if (e instanceof BioBrood) {
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#86efac';
-      ctx.fillRect(-6, -3, 5, 6);
-
-      // Gaping Acidic Maw
-      ctx.fillStyle = '#052e16';
-      ctx.fillRect(e.radius - 6, -4, 8, 8);
-      ctx.fillStyle = '#39ff14';
-      ctx.fillRect(e.radius - 3, -2, 5, 4);
-
-      // Armored Head Plate
-      ctx.fillStyle = '#15803d';
-      ctx.fillRect(2, -7, 6, 14);
-    } else if (e instanceof BioBrood) {
-      // Bio-Brood: Colossal Hive Matriarch Carrier
-      ctx.fillStyle = '#14532d';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, e.radius, e.radius * 0.85, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      // Pulsing Larval Egg Sac Chambers
-      ctx.fillStyle = '#39ff14';
-      [-8, 0, 8].forEach(ex => {
-        ctx.beginPath();
-        ctx.arc(ex - 4, -6, 4, 0, Math.PI * 2);
-        ctx.arc(ex - 4, 6, 4, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Heavily Armored Head Horns
-      ctx.fillStyle = '#166534';
-      ctx.fillRect(e.radius - 6, -10, 8, 4);
-      ctx.fillRect(e.radius - 6, 6, 8, 4);
-
-      // Predatory Compound Eyes
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(e.radius - 2, -4, 4, 3);
-      ctx.fillRect(e.radius - 2, 1, 4, 3);
+      ctx.fillRect(-6, -6, 12, 12);
     }
-    // ==========================================
-    // SECTOR 2: AUTOMATON COMPLEX
-    // ==========================================
+    // Sector 2: Robots
     else if (e instanceof RoboDrone) {
-      // Robo-Drone: Aerial Combat Drone
-      const bodyCol = e.isHacked ? '#0284c7' : '#0f172a';
-      const glowCol = e.isHacked ? '#00f0ff' : '#ff2a5f';
-
-      // Faceted Angular Chassis
-      ctx.fillStyle = bodyCol;
-      ctx.fillRect(-e.radius * 0.9, -e.radius * 0.8, e.radius * 1.8, e.radius * 1.6);
-      ctx.strokeStyle = glowCol;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-e.radius * 0.9, -e.radius * 0.8, e.radius * 1.8, e.radius * 1.6);
-
-      // Dual Lateral Thrusters
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(-e.radius - 2, -e.radius * 0.9, 6, 5);
-      ctx.fillRect(-e.radius - 2, e.radius * 0.9 - 5, 6, 5);
-
-      // Jet Thruster Exhaust Flames
-      ctx.fillStyle = glowCol;
-      ctx.fillRect(-e.radius - 7, -e.radius * 0.9 + 1, 5, 3);
-      ctx.fillRect(-e.radius - 7, e.radius * 0.9 - 4, 5, 3);
-
-      // Cyclops Optical Sensor
-      ctx.fillStyle = glowCol;
-      ctx.fillRect(e.radius - 6, -3, 6, 6);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(e.radius - 4, -1, 3, 2);
-    } else if (e instanceof RoboSentry) {
-      // Robo-Sentry: Heavy Stationary Tactical Turret
-      const glowCol = e.isHacked ? '#00f0ff' : '#ff0055';
-
-      // Quad Tripod Base
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 4;
-      [-12, 12].forEach(yPos => {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-e.radius - 2, yPos);
-        ctx.moveTo(0, 0);
-        ctx.lineTo(e.radius + 2, yPos);
-        ctx.stroke();
-      });
-
-      // Turret Housing with Hazard Stripes
+      ctx.fillStyle = e.isHacked ? '#00f0ff' : '#ff2a5f';
+      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
       ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius * 0.85, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = glowCol;
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      // Dual Gatling Heavy Barrels
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(4, -5, 14, 3);
-      ctx.fillRect(4, 2, 14, 3);
-
-      // Center Laser Targeting Reticle
-      ctx.fillStyle = glowCol;
-      ctx.fillRect(-3, -3, 6, 6);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-1, -1, 2, 2);
+      ctx.fillRect(-4, -4, 8, 8);
+    } else if (e instanceof RoboSentry) {
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
+      ctx.strokeStyle = e.isHacked ? '#00f0ff' : '#ff0055';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
     } else if (e instanceof RoboRoller) {
-      // Robo-Roller: Heavy Armored Treaded Juggernaut
       ctx.fillStyle = '#0369a1';
       ctx.beginPath();
       ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
       ctx.stroke();
-
-      // Rotating Tread Chevrons
-      ctx.strokeStyle = '#082f49';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius * 0.65, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Charging Laser Eye
-      const eyeCol = e.isCharging ? '#ff0055' : '#00f0ff';
-      ctx.fillStyle = eyeCol;
-      ctx.fillRect(e.radius - 6, -4, 6, 8);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(e.radius - 3, -2, 3, 4);
     }
-    // ==========================================
-    // SECTOR 3: VOID PHANTOM
-    // ==========================================
+    // Sector 3: Void
     else if (e instanceof VoidPhantom) {
-      // Void-Phantom: Shadowy Ethereal Cosmic Entity
-      ctx.fillStyle = '#3b0764';
+      ctx.fillStyle = '#bf55ec';
       ctx.beginPath();
       ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#bf55ec';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Floating Faceless Cosmic Void Mask
-      ctx.fillStyle = '#1e082c';
-      ctx.fillRect(-4, -6, 12, 12);
-      ctx.fillStyle = '#e879f9';
-      ctx.fillRect(2, -4, 3, 3);
-      ctx.fillRect(2, 1, 3, 3);
-
-      // Swirling Dark Matter Tendrils
-      ctx.strokeStyle = '#7e22ce';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(-e.radius * 0.6, 0, e.radius * 0.5, 0, Math.PI);
-      ctx.stroke();
+      ctx.fillStyle = '#4a044e';
+      ctx.fillRect(-4, -4, 8, 8);
     }
+
     // SECRET BOSS: O VÓRTICE
     else if (e instanceof BossVortex) {
       const appear = e.spawning ? Math.max(0.02, e.spawnProgress) : 1;
@@ -973,7 +807,7 @@ const PixelArt = {
       ctx.globalAlpha = 1;
     }
 
-    // Golden enemy Easter egg: preserve the original pixel-art silhouette,
+    // Golden enemy Easter egg: preserve the restored original enemy appearance,
     // then tint only its opaque pixels. This keeps every enemy recognizable
     // while making the variant clearly special.
     if (e.isGolden && !e.isBoss) {
@@ -989,8 +823,8 @@ const PixelArt = {
       ctx.save();
       ctx.globalAlpha = 0.85;
       ctx.fillStyle = '#fff7a8';
-      ctx.shadowColor = '#facc15';
-      ctx.shadowBlur = 7;
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
       for (let i = 0; i < 3; i++) {
         const a = t + i * (Math.PI * 2 / 3);
         const r = e.radius + 4 + Math.sin(t * 1.7 + i) * 3;
@@ -1500,9 +1334,8 @@ class Game {
 
   startNewRun() {
     this.currentSectorIndex = 0;
-    // One 20% roll per complete run. If successful, choose one eligible
-    // sector (1, 2 or 4); Sector 3 is permanently excluded by design.
-    this.vortexSecretSector = Math.random() < 0.20 ? [1, 2, 4][Math.floor(Math.random() * 3)] : null;
+    // One 12% roll per complete run. If successful, choose one sector (1-4).
+    this.vortexSecretSector = Math.random() < 0.12 ? [1, 2, 3, 4][Math.floor(Math.random() * 4)] : null;
     this.sector = CONSTANTS.SECTORS[this.currentSectorIndex];
     this.player = new Player(this.width / 2, this.height / 2, this);
     this.loadSector(this.currentSectorIndex);
