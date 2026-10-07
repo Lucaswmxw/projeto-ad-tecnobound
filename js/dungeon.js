@@ -21,6 +21,7 @@ class Room {
     this.decorations = [];
     this.bossDefeated = false;
     this.airlockActive = false;
+    this.progressionPortal = null;
     this.vacuumBreach = (sector.hasVacuum || (type === 'HAZARD' && Math.random() < 0.6));
     this.treasureClaimed = false;
     this.mutagenClaimed = false;

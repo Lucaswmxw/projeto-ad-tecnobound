@@ -646,6 +646,9 @@ class Enemy extends Entity {
 
   onDeath(source) {
     const game = window.gameInstance;
+    // Resolve the current room once at the start of the death handler.
+    // This must remain in scope for drops, mutation effects and boss cleanup.
+    const room = game?.dungeon?.currentRoom;
     if (game) {
       // Death explosion particles
       for (let i = 0; i < 10; i++) {
@@ -667,7 +670,6 @@ class Enemy extends Entity {
 
         // Contagious Spores Mutation
         if (p.mutations.contagiousSpores) {
-          const room = game.dungeon.currentRoom;
           if (room) {
             room.hazards.push({
               x: this.x - 22,
@@ -682,6 +684,7 @@ class Enemy extends Entity {
         }
 
         // Drops
+        if (!room) return;
         const dropRoll = Math.random();
         if (dropRoll < 0.5) {
           const scrapAmt = this.isBoss ? 50 : (Math.floor(Math.random() * 4) + 2);

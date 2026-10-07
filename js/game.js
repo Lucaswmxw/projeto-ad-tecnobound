@@ -1579,20 +1579,35 @@ class Game {
       room.obstacles.forEach(obs => PixelArt.drawObstacle(ctx, obs, room.sector.theme));
     }
 
-    // Boss Airlock Elevator
+    // Boss progression portal. It is a room object, not a transient effect,
+    // so it remains visible until the player actually enters it.
     if (room.type === 'BOSS' && room.airlockActive) {
-      ctx.fillStyle = '#00f0ff';
+      const portal = room.progressionPortal || { x: W / 2, y: H / 2, radius: 32 };
+      const pulse = 1 + Math.sin(performance.now() * 0.006) * 0.10;
+      ctx.save();
+      ctx.translate(portal.x, portal.y);
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = 18;
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.arc(W / 2, H / 2, 28, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(0, 0, portal.radius * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
       ctx.fillStyle = '#040810';
       ctx.beginPath();
-      ctx.arc(W / 2, H / 2, 20, 0, Math.PI * 2);
+      ctx.arc(0, 0, portal.radius - 7, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#39ff14';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, portal.radius - 12, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.fillStyle = '#00f0ff';
       ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('ELEVADOR', W / 2, H / 2 + 3);
+      ctx.fillText('ELEVADOR', 0, 4);
+      ctx.restore();
     }
 
     if (room.pickups) {
@@ -1758,9 +1773,11 @@ class Game {
       });
     }
 
-    // Boss Airlock Elevator (advances to next sector)
-    if (room.type === 'BOSS' && room.airlockActive) {
-      if (Math.hypot(this.player.x - this.width / 2, this.player.y - this.height / 2) < 45) {
+    // Boss progression portal: interaction is checked during UPDATE only.
+    // Never change sectors from the render path.
+    if (room.type === 'BOSS' && room.airlockActive && room.progressionPortal?.active) {
+      const portal = room.progressionPortal;
+      if (Math.hypot(this.player.x - portal.x, this.player.y - portal.y) < portal.radius + this.player.radius + 8) {
         this.advanceToNextSector();
       }
     }
@@ -1881,16 +1898,39 @@ class Game {
 
   onBossDefeated() {
     const room = this.dungeon?.currentRoom;
-    if (!room) return;
+    if (!room || room.type !== 'BOSS') return;
+    if (room.bossDefeated && room.airlockActive) return;
+
     room.bossDefeated = true;
     room.airlockActive = true;
     room.cleared = true;
     room.doorsLocked = false;
-    this.addParticle(new Shockwave(this.width / 2, this.height / 2, 220, '#00f0ff'));
-    this.addParticle(new FloatingText(this.width / 2, this.height / 2 - 35, "ELEVADOR DO SETOR ATIVADO!", "#00f0ff"));
+    room.enemies = (room.enemies || []).filter(e => !e.isBoss && !e.dead);
+
+    // Persistent progression object. Keep it away from the player if the boss
+    // died while the player was standing on the arena center.
+    const px = this.player?.x ?? this.width / 2;
+    const py = this.player?.y ?? this.height / 2;
+    let portalX = this.width / 2;
+    let portalY = this.height / 2;
+    if (Math.hypot(px - portalX, py - portalY) < 75 && this.player) {
+      const angle = Math.atan2(py - portalY, px - portalX) || 0;
+      this.player.x = portalX + Math.cos(angle) * 90;
+      this.player.y = portalY + Math.sin(angle) * 90;
+      this.player.x = Math.max(CONSTANTS.WALL_THICKNESS + this.player.radius + 5, Math.min(this.width - CONSTANTS.WALL_THICKNESS - this.player.radius - 5, this.player.x));
+      this.player.y = Math.max(CONSTANTS.WALL_THICKNESS + this.player.radius + 5, Math.min(this.height - CONSTANTS.WALL_THICKNESS - this.player.radius - 5, this.player.y));
+    }
+
+    room.progressionPortal = { x: portalX, y: portalY, radius: 32, active: true };
+
+    this.addParticle(new Shockwave(portalX, portalY, 220, '#00f0ff'));
+    this.addParticle(new FloatingText(portalX, portalY - 48, "ELEVADOR DO SETOR ATIVADO!", "#00f0ff"));
   }
 
   advanceToNextSector() {
+    const room = this.dungeon?.currentRoom;
+    if (!room || !room.airlockActive || !room.progressionPortal?.active) return;
+    room.progressionPortal.active = false;
     const next = this.currentSectorIndex + 1;
     if (next < CONSTANTS.SECTORS.length) {
       this.loadSector(next);
