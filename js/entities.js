@@ -250,6 +250,10 @@ class Projectile {
       }
     }
 
+    // Keep the previous position so fast projectiles cannot tunnel through
+    // the player/enemies between frames.
+    const prevX = this.x;
+    const prevY = this.y;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
 
@@ -286,22 +290,63 @@ class Projectile {
       }
     }
 
-    // Entity Collision Detection (Faction Controlled). Keep the iteration
-    // bounded and safe even when a hit removes an enemy from the room.
+    // Entity Collision Detection. Use swept-circle tests so fast projectiles
+    // cannot pass through a target between two frames. Enemy projectiles must
+    // also test the player explicitly; previously this loop only considered
+    // room.enemies, which made several hostile projectile types miss the player.
+    const targets = [];
     const enemies = room?.enemies || [];
     for (let i = 0; i < enemies.length; i++) {
       const target = enemies[i];
+      if (target) targets.push(target);
+    }
+
+    const player = window.gameInstance?.player;
+    if (player && !player.dead) targets.push(player);
+
+    const segmentPointDistanceSq = (ax, ay, bx, by, px, py) => {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const lenSq = abx * abx + aby * aby;
+      if (lenSq <= 0.000001) {
+        const dx = px - ax;
+        const dy = py - ay;
+        return dx * dx + dy * dy;
+      }
+      const t = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby) / lenSq));
+      const cx = ax + abx * t;
+      const cy = ay + aby * t;
+      const dx = px - cx;
+      const dy = py - cy;
+      return dx * dx + dy * dy;
+    };
+
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
       if (!target || target.dead || !window.areHostile(this, target)) continue;
       if (this.hitTargets.has(target)) continue;
 
-      const dx = this.x - target.x;
-      const dy = this.y - target.y;
-      const hitRadius = this.radius + target.radius;
-      if ((dx * dx + dy * dy) < hitRadius * hitRadius) {
-        // Register the target before side effects so a death effect or chain
-        // cannot cause this projectile to process the same target recursively.
+      const hitRadius = this.radius + (target.radius || 0);
+      const hitRadiusSq = hitRadius * hitRadius;
+      const distanceSq = segmentPointDistanceSq(
+        prevX, prevY, this.x, this.y, target.x, target.y
+      );
+
+      if (distanceSq < hitRadiusSq) {
+        // Register before side effects to prevent recursive/re-entrant hits.
         this.hitTargets.add(target);
         const hit = target.takeDamage(this.damage, this.owner);
+
+        // Projectiles belonging to hostile entities are consumed when they
+        // physically hit the player, even if the player is temporarily
+        // invulnerable. This prevents the same projectile from lingering on
+        // the player's hitbox and producing repeated collision checks.
+        const hitPlayer = target === player;
+        if (hitPlayer) {
+          this.dead = true;
+          break;
+        }
+
         if (!hit) {
           this.hitTargets.delete(target);
           continue;
@@ -333,8 +378,7 @@ class Projectile {
           });
         }
 
-        // Piercing Projectiles (Railgun, etc.): one pierce is consumed per
-        // unique target, never repeatedly for the same enemy.
+        // Piercing projectiles consume one pierce per unique target.
         if (this.pierce && this.piercesLeft > 1) {
           this.piercesLeft--;
         } else {
@@ -343,7 +387,6 @@ class Projectile {
         }
       }
     }
-
   }
 
   triggerChainLightning(primaryTarget, room) {
