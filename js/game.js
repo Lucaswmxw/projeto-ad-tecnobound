@@ -942,22 +942,6 @@ const PixelArt = {
       ctx.fillRect(-e.radius * 2.2, -e.radius * 2.2, e.radius * 4.4, e.radius * 4.4);
       ctx.restore();
 
-      // Small animated sparkle particles: visual only, no gameplay objects.
-      const t = performance.now() * 0.004;
-      ctx.save();
-      ctx.globalAlpha = 0.85;
-      ctx.fillStyle = '#fff7a8';
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      for (let i = 0; i < 3; i++) {
-        const a = t + i * (Math.PI * 2 / 3);
-        const r = e.radius + 4 + Math.sin(t * 1.7 + i) * 3;
-        const sx = Math.cos(a) * r;
-        const sy = Math.sin(a) * r;
-        const s = 2 + (i === 0 ? 1 : 0);
-        ctx.fillRect(Math.round(sx - s / 2), Math.round(sy - s / 2), s, s);
-      }
-      ctx.restore();
     }
 
     // ==========================================
@@ -1148,19 +1132,31 @@ const PixelArt = {
       ctx.translate(Math.round(e.x), Math.round(e.y));
       const bw = 150;
       const bh = 10;
+      const titanHasShield = e instanceof BossTitan && e.shield > 0;
+      const hpY = titanHasShield ? -e.radius - 23 : -e.radius - 26;
       ctx.fillStyle = '#09111c';
-      ctx.fillRect(-bw / 2, -e.radius - 26, bw, bh);
+      ctx.fillRect(-bw / 2, hpY, bw, bh);
       ctx.fillStyle = '#ff0055';
       const pct = Math.max(0, e.hp / e.maxHp);
-      ctx.fillRect(-bw / 2, -e.radius - 26, bw * pct, bh);
+      ctx.fillRect(-bw / 2, hpY, bw * pct, bh);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(-bw / 2, -e.radius - 26, bw, bh);
+      ctx.strokeRect(-bw / 2, hpY, bw, bh);
+      if (e instanceof BossTitan && e.maxShield > 0) {
+        const sy = -e.radius - 36;
+        ctx.fillStyle = '#071722';
+        ctx.fillRect(-bw / 2, sy, bw, 7);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-bw / 2, sy, bw * Math.max(0, e.shield / e.maxShield), 7);
+        ctx.strokeStyle = '#b8fbff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-bw / 2, sy, bw, 7);
+      }
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 8px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(e.bossName || 'CHEFE', 0, -e.radius - 29);
+      ctx.fillText(e.bossName || 'CHEFE', 0, titanHasShield ? -e.radius - 40 : -e.radius - 29);
       ctx.restore();
     }
   },
@@ -1432,6 +1428,8 @@ class Game {
     this.sectorIntroDuration = 1.65;
 
     this.fullscreenPreferred = localStorage.getItem('tecnoboundFullscreen') === '1';
+    this.expurgationMode = localStorage.getItem('tecnoboundExpurgation') === '1';
+    this.runExpurgationMode = this.expurgationMode;
     this.initUIListeners();
     this.initFullscreenSupport();
   }
@@ -1503,6 +1501,12 @@ class Game {
   initUIListeners() {
     const btnStart = document.getElementById('btnStartGame');
     if (btnStart) btnStart.addEventListener('click', () => { this.startNewRun(); this.enterPreferredFullscreen(); });
+
+    ['btnExpurgationMenu', 'btnExpurgationOver', 'btnExpurgationWin'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', () => this.toggleExpurgationMode());
+    });
+    this.updateExpurgationButtons();
 
     const btnRestart = document.getElementById('btnRestart');
     if (btnRestart) btnRestart.addEventListener('click', () => this.startNewRun());
@@ -1576,7 +1580,27 @@ class Game {
     }
   }
 
+  toggleExpurgationMode() {
+    this.expurgationMode = !this.expurgationMode;
+    try { localStorage.setItem('tecnoboundExpurgation', this.expurgationMode ? '1' : '0'); } catch (e) {}
+    this.updateExpurgationButtons();
+  }
+
+  updateExpurgationButtons() {
+    const enabled = !!this.expurgationMode;
+    const label = `MODO EXPURGAÇÃO: ${enabled ? 'ATIVADO' : 'DESATIVADO'}`;
+    ['btnExpurgationMenu', 'btnExpurgationOver', 'btnExpurgationWin'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.textContent = label;
+    });
+    const hint = document.getElementById('expurgationHint');
+    if (hint) hint.textContent = enabled
+      ? 'MAIS VIDA NOS INIMIGOS // DANO AO JOGADOR DOBRADO APÓS O ESCUDO'
+      : 'MODO DESATIVADO // EXPERIÊNCIA PADRÃO';
+  }
+
   startNewRun() {
+    this.runExpurgationMode = !!this.expurgationMode;
     this.currentSectorIndex = 0;
     // One 12% roll per complete run. If successful, choose one sector (1-4).
     this.vortexSecretSector = Math.random() < 0.12 ? [1, 2, 3, 4][Math.floor(Math.random() * 4)] : null;
@@ -1880,6 +1904,15 @@ class Game {
           ctx.beginPath();
           ctx.arc(0, 0, proj.radius * pulse, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
+        } else if (proj.type === 'laser') {
+          ctx.save();
+          ctx.translate(Math.round(proj.x), Math.round(proj.y));
+          ctx.rotate(Math.atan2(proj.vy, proj.vx));
+          ctx.fillStyle = '#a5f3fc';
+          ctx.fillRect(-13, -2, 26, 4);
+          ctx.fillStyle = '#22d3ee';
+          ctx.fillRect(-13, -1, 26, 2);
           ctx.restore();
         } else if (proj.type === 'void_spiral') {
           ctx.save();

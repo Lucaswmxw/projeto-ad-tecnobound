@@ -78,6 +78,13 @@ class Entity {
   onDeath(source) {}
 
   update(dt, room) {
+    // Expurgação: escala a vida uma única vez, após o construtor específico terminar.
+    const gameMode = window.gameInstance;
+    if (this.faction !== CONSTANTS.FACTIONS.PLAYER && gameMode?.runExpurgationMode && !this.expurgationScaled) {
+      this.maxHp = Math.ceil(this.maxHp * (this.isBoss ? 1.55 : 1.65));
+      this.hp = this.maxHp;
+      this.expurgationScaled = true;
+    }
     // Coordinate NaN safety
     if (isNaN(this.x) || isNaN(this.y)) {
       this.x = CONSTANTS.ROOM_WIDTH / 2;
@@ -216,6 +223,7 @@ class Projectile {
     this.hitTargets = new Set(); // Prevent damaging the same target multiple times
     this.stuckTarget = null;
     this.tickTimer = 0;
+    this.laserTick = 0;
   }
 
   update(dt, room) {
@@ -243,6 +251,7 @@ class Projectile {
     }
 
     this.life -= dt;
+    if (this.type === 'laser') this.laserTick += dt;
     if (this.life <= 0) {
       this.dead = true;
       return;
@@ -351,7 +360,7 @@ class Projectile {
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i];
       if (!target || target.dead || !window.areHostile(this, target)) continue;
-      if (this.hitTargets.has(target)) continue;
+      if (this.hitTargets.has(target) && this.type !== 'laser') continue;
 
       // Player projectiles use a swept AABB test because the player is a square,
       // not a circle. This also fixes fast hostile projectiles tunneling through
@@ -425,15 +434,18 @@ class Projectile {
           break;
         }
 
-        // Register before side effects to prevent recursive/re-entrant hits.
-        this.hitTargets.add(target);
-        const hit = target.takeDamage(this.damage, this.owner);
+        // Laser shots can tick the same target repeatedly while the beam travels.
+        if (this.type !== 'laser') this.hitTargets.add(target);
+        const hit = target.takeDamage(this.type === 'laser' ? this.damage * 0.35 : this.damage, this.owner);
 
         // Projectiles belonging to hostile entities are consumed when they
         // physically hit the player, even if the player is temporarily
         // invulnerable. This prevents the same projectile from lingering on
         // the player's hitbox and producing repeated collision checks.
         const hitPlayer = target === player;
+        if (hitPlayer && this.type === 'missile') {
+          this.applyMissileSplash(room, player);
+        }
         if (hitPlayer) {
           this.dead = true;
           break;
@@ -444,23 +456,7 @@ class Projectile {
           continue;
         }
 
-        if (this.type === 'missile') {
-          try {
-            if (window.soundEngine) window.soundEngine.playExplosion();
-          } catch (e) {}
-          const splashRadius = 48;
-          const splashTarget = window.gameInstance?.player;
-          if (splashTarget && splashTarget !== target && !splashTarget.dead && window.areHostile(this, splashTarget)) {
-            if (Math.hypot(splashTarget.x - this.x, splashTarget.y - this.y) <= splashRadius) {
-              splashTarget.takeDamage(Math.max(1, Math.round(this.damage * 0.75)), this.owner || this);
-            }
-          }
-          if (window.gameInstance) {
-            window.gameInstance.addParticle(new Shockwave(this.x, this.y, 75, '#ffaa00'));
-            window.gameInstance.addParticle(new Shockwave(this.x, this.y, 38, '#ef4444', 0.2));
-            window.gameInstance.screenShake(4, 0.15);
-          }
-        }
+        if (this.type === 'missile') this.applyMissileSplash(room, target);
 
         // Tesla Chain Lightning Propagation
         if (this.chainTargets > 0 || this.type === 'lightning') {
@@ -478,6 +474,8 @@ class Projectile {
           });
         }
 
+        // Laser beam pulses continue through any number of targets.
+        if (this.type === 'laser') { this.hitTargets.delete(target); continue; }
         // Piercing projectiles consume one pierce per unique target.
         if (this.pierce && this.piercesLeft > 1) {
           this.piercesLeft--;
@@ -558,6 +556,7 @@ class Particle {
 
   update(dt) {
     this.life -= dt;
+    if (this.type === 'laser') this.laserTick += dt;
     if (this.life <= 0) {
       this.dead = true;
       return;
@@ -606,6 +605,7 @@ class Shockwave {
 
   update(dt) {
     this.life -= dt;
+    if (this.type === 'laser') this.laserTick += dt;
     if (this.life <= 0) {
       this.dead = true;
       return;
@@ -641,6 +641,7 @@ class FloatingText {
 
   update(dt) {
     this.life -= dt;
+    if (this.type === 'laser') this.laserTick += dt;
     if (this.life <= 0) {
       this.dead = true;
       return;
@@ -691,6 +692,7 @@ class LightningArc {
 
   update(dt) {
     this.life -= dt;
+    if (this.type === 'laser') this.laserTick += dt;
     if (this.life <= 0) {
       this.dead = true;
     }
@@ -826,32 +828,41 @@ class Enemy extends Entity {
           }
         }
 
-        // GOLDEN ENEMY EASTER EGG: guaranteed special reward.
-        // This is after mutation effects so golden enemies still interact
-        // correctly with the player's existing mutations.
+        // Golden enemies retain their visual Easter egg, but their rewards
+        // obey the global scrap limits and the reduced Expurgation drop rate.
         if (this.isGolden && !this.isBoss) {
-          const goldenScrap = 10 + Math.floor(Math.random() * 11); // 10-20
-          room.pickups.push({ x: this.x - 16, y: this.y, type: 'scrap', amount: goldenScrap, size: 8 });
-          room.pickups.push({ x: this.x + 16, y: this.y - 4, type: 'o2', amount: 30, size: 8 });
-          room.pickups.push({ x: this.x, y: this.y + 16, type: 'hp', amount: 1, size: 8 });
-          game.addParticle(new FloatingText(this.x, this.y - 28, 'TESOURO DOURADO', '#facc15', 1.2));
-          game.addParticle(new Shockwave(this.x, this.y, 46, '#facc15', 0.4));
-          if (window.soundEngine) window.soundEngine.playPickup('golden');
+          const expurgation = game.runExpurgationMode === true;
+          if (!expurgation || Math.random() < 0.5) {
+            const goldenScrap = 1 + Math.floor(Math.random() * 5); // 1-5, like any enemy
+            room.pickups.push({ x: this.x - 16, y: this.y, type: 'scrap', amount: goldenScrap, size: 8 });
+            if (!expurgation || Math.random() < 0.35) {
+              const bonusType = game.sector?.hasVacuum && Math.random() < 0.5 ? 'o2' : (Math.random() < 0.5 ? 'hp' : 'shield');
+              room.pickups.push({ x: this.x + 12, y: this.y + 8, type: bonusType, amount: bonusType === 'o2' ? 30 : 1, size: 8 });
+            }
+            game.addParticle(new FloatingText(this.x, this.y - 28, 'TESOURO DOURADO', '#facc15', 1.2));
+            game.addParticle(new Shockwave(this.x, this.y, 46, '#facc15', 0.4));
+            if (window.soundEngine) window.soundEngine.playPickup('golden');
+          }
           return;
         }
 
-        // Drops
+        // Expurgation suppresses 45% of enemy drop events across every sector.
+        // Remaining drops keep the normal category distribution, but scrap is
+        // globally balanced to 1-5 per regular enemy and 10-17 per boss.
         if (!room) return;
+        const expurgation = game.runExpurgationMode === true;
+        if (expurgation && Math.random() < 0.45) return;
         const dropRoll = Math.random();
         if (dropRoll < 0.5) {
-          const scrapAmt = this.isBoss ? 50 : (Math.floor(Math.random() * 4) + 2);
+          const scrapAmt = this.isBoss
+            ? (10 + Math.floor(Math.random() * 8))
+            : (1 + Math.floor(Math.random() * 5));
           room.pickups.push({ x: this.x, y: this.y, type: 'scrap', amount: scrapAmt, size: 8 });
         } else if (dropRoll < 0.65) {
           room.pickups.push({ x: this.x, y: this.y, type: 'hp', amount: 1, size: 8 });
         } else if (dropRoll < 0.78) {
           room.pickups.push({ x: this.x, y: this.y, type: 'shield', amount: 1, size: 8 });
-        } else if (game.sector.hasVacuum) {
-          // Sector 3 is intentionally tighter on O2 pickups for progression balance.
+        } else if (game.sector?.hasVacuum) {
           const o2Threshold = game.sector.id === 3 ? 0.96 : 0.90;
           if (dropRoll < o2Threshold) {
             room.pickups.push({ x: this.x, y: this.y, type: 'o2', amount: 30, size: 8 });
@@ -1081,6 +1092,7 @@ class CoreBombardier extends Enemy {
     this.speed = 34;
     this.color = '#ef4444';
     this.contactDamage = 2;
+    this.attackInterval = 2.0;
   }
 
   applyHack(duration) {
@@ -1132,12 +1144,19 @@ class CoreKamikaze extends Enemy {
     this.detonated = false;
   }
 
+  applyHack(duration) { /* Kamikazes remain locked onto the player. */ }
+
   executeAI(dt, room) {
     if (!this.target) return;
     const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-    const speed = this.isHacked ? this.speed * 0.72 : this.speed;
-    this.vx = Math.cos(angle) * speed;
-    this.vy = Math.sin(angle) * speed;
+    // Kamikazes always prioritize the player, regardless of nearby robots.
+    const game = window.gameInstance;
+    const player = game?.player;
+    if (player && !player.dead) this.target = player;
+    const playerAngle = player ? Math.atan2(player.y - this.y, player.x - this.x) : angle;
+    const speed = this.speed;
+    this.vx = Math.cos(playerAngle) * speed;
+    this.vy = Math.sin(playerAngle) * speed;
   }
 
   detonate(finalizeDeath = true) {
@@ -1371,16 +1390,35 @@ class BossGorgon extends Enemy {
     super(x, y, 42, CONSTANTS.FACTIONS.ALIEN);
     this.isBoss = true;
     this.bossName = "GORGON: PATRIARCA BIOMASSA";
-    this.maxHp = 242;
-    this.hp = 242;
+    this.maxHp = 310;
+    this.hp = 310;
     this.speed = 60;
     this.color = '#39ff14';
     this.contactDamage = 2;
     this.attackInterval = 2.4;
+    this.summonTimer = 5.5;
   }
 
   executeAI(dt, room) {
     if (!this.target) return;
+    this.summonTimer -= dt;
+    if (this.summonTimer <= 0) {
+      this.summonTimer = 7.0;
+      const roomEnemies = room.enemies || [];
+      const spawnCount = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < spawnCount; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 58 + Math.random() * 30;
+        const x = Math.max(48, Math.min(CONSTANTS.ROOM_WIDTH - 48, this.x + Math.cos(a) * r));
+        const y = Math.max(48, Math.min(CONSTANTS.ROOM_HEIGHT - 48, this.y + Math.sin(a) * r));
+        const minion = Math.random() < 0.62 ? new BioSwarmer(x, y) : new BioSpitter(x, y);
+        roomEnemies.push(minion);
+      }
+      if (window.gameInstance) {
+        window.gameInstance.addParticle(new Shockwave(this.x, this.y, 88, '#39ff14', 0.28));
+        window.gameInstance.addParticle(new FloatingText(this.x, this.y - 54, 'PROLE BIOLÓGICA', '#39ff14'));
+      }
+    }
     const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
     this.vx = Math.cos(angle) * this.speed;
     this.vy = Math.sin(angle) * this.speed;
@@ -1417,13 +1455,37 @@ class BossTitan extends Enemy {
     super(x, y, 46, CONSTANTS.FACTIONS.ROBOT);
     this.isBoss = true;
     this.bossName = "TITÃ MK-IV: GUARDIÃO CIBERNÉTICO";
-    this.maxHp = 352;
-    this.hp = 352;
+    this.maxHp = 100;
+    this.hp = 100;
+    this.maxShield = 520;
+    this.shield = 520;
+    this.shieldBroken = false;
     this.speed = 45;
     this.color = '#00f0ff';
     this.contactDamage = 3;
     this.attackInterval = 2.7 + Math.random() * 2.2;
     this.attackPattern = 0;
+  }
+
+  takeDamage(amount, source) {
+    if (!Number.isFinite(amount) || amount <= 0 || this.dead || this.damageProcessing) return false;
+    if (this.invulnTimer > 0) return false;
+    if (!this.shieldBroken && this.shield > 0) {
+      this.shield = Math.max(0, this.shield - amount);
+      this.flashTimer = 0.1;
+      if (this.shield === 0) {
+        this.shieldBroken = true;
+        this.hp = this.maxHp; // o núcleo recupera a vida ao perder o escudo
+        this.invulnTimer = 3.0;
+        if (window.gameInstance) {
+          window.gameInstance.addParticle(new Shockwave(this.x, this.y, 125, '#00f0ff', 0.38));
+          window.gameInstance.addParticle(new FloatingText(this.x, this.y - 55, 'ESCUDO ROMPIDO // 3s', '#00f0ff'));
+          window.gameInstance.screenShake(8, 0.3);
+        }
+      }
+      return true;
+    }
+    return super.takeDamage(amount, source);
   }
 
   executeAI(dt, room) {
@@ -1488,10 +1550,33 @@ class BossEntropia extends Enemy {
     this.color = '#bf55ec';
     this.contactDamage = 3;
     this.attackInterval = 1.8;
+    this.teleportTimer = 6.5;
   }
 
   executeAI(dt, room) {
     if (!this.target) return;
+    this.teleportTimer -= dt;
+    if (this.teleportTimer <= 0) {
+      this.teleportTimer = 6.0 + Math.random() * 2.0;
+      const margin = 92;
+      const corners = [
+        { x: margin, y: margin },
+        { x: CONSTANTS.ROOM_WIDTH - margin, y: margin },
+        { x: margin, y: CONSTANTS.ROOM_HEIGHT - margin },
+        { x: CONSTANTS.ROOM_WIDTH - margin, y: CONSTANTS.ROOM_HEIGHT - margin }
+      ].filter(pt => Math.hypot(pt.x - this.target.x, pt.y - this.target.y) >= 190);
+      if (corners.length) {
+        const fromX = this.x, fromY = this.y;
+        const dest = corners[Math.floor(Math.random() * corners.length)];
+        this.x = dest.x; this.y = dest.y;
+        this.vx = 0; this.vy = 0;
+        if (window.gameInstance) {
+          window.gameInstance.addParticle(new Shockwave(fromX, fromY, 56, '#bf55ec', 0.2));
+          window.gameInstance.addParticle(new Shockwave(this.x, this.y, 72, '#bf55ec', 0.25));
+          window.gameInstance.addParticle(new FloatingText(this.x, this.y - 48, 'DESLOCAMENTO', '#bf55ec'));
+        }
+      }
+    }
     const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
     this.vx = Math.cos(angle) * this.speed;
     this.vy = Math.sin(angle) * this.speed;
@@ -1539,10 +1624,28 @@ class BossArchon extends Enemy {
     this.contactDamage = 3;
     this.attackInterval = 1.5;
     this.phase2Triggered = false;
+    this.kamikazeSummonTimer = 7.0;
   }
 
   executeAI(dt, room) {
     if (!this.target) return;
+    this.kamikazeSummonTimer -= dt;
+    if (this.kamikazeSummonTimer <= 0) {
+      this.kamikazeSummonTimer = this.phase2Triggered ? 6.0 : 8.0;
+      const roomEnemies = room.enemies || [];
+      const activeKamikazes = roomEnemies.filter(e => e instanceof CoreKamikaze && !e.dead).length;
+      const count = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count && activeKamikazes + i < 7; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const x = Math.max(44, Math.min(CONSTANTS.ROOM_WIDTH - 44, this.x + Math.cos(a) * 76));
+        const y = Math.max(44, Math.min(CONSTANTS.ROOM_HEIGHT - 44, this.y + Math.sin(a) * 76));
+        roomEnemies.push(new CoreKamikaze(x, y));
+      }
+      if (window.gameInstance) {
+        window.gameInstance.addParticle(new Shockwave(this.x, this.y, 100, '#ffcc33', 0.3));
+        window.gameInstance.addParticle(new FloatingText(this.x, this.y - 65, 'PROTOCOLO KAMIKAZE', '#ffcc33'));
+      }
+    }
     const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
     this.vx = Math.cos(angle) * this.speed;
     this.vy = Math.sin(angle) * this.speed;
@@ -1657,7 +1760,9 @@ class Player extends Entity {
       contagiousSpores: false,
       chitinShell: false,
       vampiricTendrils: false,
-      voidbound: false
+      voidbound: false,
+      shieldBody: false,
+      homingInstinct: false
     };
     this.tentacleTimer = 0;
     this.spasmTimer = 0;
@@ -1713,6 +1818,14 @@ class Player extends Entity {
   addMutation(mutationId) {
     if (this.mutations && this.mutations.hasOwnProperty(mutationId)) {
       this.mutations[mutationId] = true;
+      if (mutationId === 'shieldBody') {
+        this.maxShield = Math.max(this.maxShield, 8);
+        this.shield = this.maxShield;
+        this.maxHp = 0; this.hp = 0;
+        this.shieldRegenTimer = 0;
+      } else if (mutationId === 'homingInstinct') {
+        this.maxShield = 0; this.shield = 0;
+      }
       this.updateHitbox();
     }
   }
@@ -1736,6 +1849,7 @@ class Player extends Entity {
       this.maxShield += module.bonusShield;
       this.shield = Math.min(this.shield + module.bonusShield, this.maxShield);
     }
+    if (this.mutations.homingInstinct) { this.maxShield = 0; this.shield = 0; }
     if (window.soundEngine) window.soundEngine.playPickup('module');
   }
 
@@ -1753,10 +1867,12 @@ class Player extends Entity {
 
     this.shieldRegenTimer = 0;
 
+    const expurgation = (this.game || window.gameInstance)?.runExpurgationMode === true;
     if (this.shield > 0) {
-      this.shield -= amount;
+      this.shield -= amount; // O escudo sempre recebe dano normal.
       if (this.shield < 0) {
-        this.hp += this.shield;
+        const overflow = -this.shield;
+        if (!this.mutations.shieldBody) this.hp -= overflow * (expurgation ? 2 : 1);
         this.shield = 0;
       }
 
@@ -1764,17 +1880,18 @@ class Player extends Entity {
         this.triggerEmpShockwave();
       }
     } else {
-      this.hp -= amount;
+      this.hp -= amount * (expurgation ? 2 : 1);
     }
 
-    this.invulnTimer = 0.85;
+    // 1,5 s de invulnerabilidade após cada dano efetivamente recebido.
+    this.invulnTimer = 1.5;
     this.flashTimer = 0.2;
     if (window.soundEngine) window.soundEngine.playPlayerDamage();
 
     const game = this.game || window.gameInstance;
     if (game) game.screenShake(7, 0.25);
 
-    if (this.hp <= 0) {
+    if (this.hp <= 0 && !(this.mutations.shieldBody && this.shield > 0)) {
       this.hp = 0;
       this.dead = true;
       this.onDeath(source);
@@ -1821,6 +1938,7 @@ class Player extends Entity {
       fireRateMult = 1.6;
       damageMult = 1.35;
     }
+    if (this.mutations.homingInstinct) fireRateMult *= 0.70;
     if (this.mutations.voidbound) {
       fireRateMult *= 0.52;
       damageMult *= 2.6;
@@ -1832,8 +1950,11 @@ class Player extends Entity {
     if (this.dashTimer > 0) this.dashTimer -= dt;
     if (this.hackTimer > 0) this.hackTimer -= dt;
 
-    // Shield Regen
-    if (this.modules.chassis?.shieldRegenDelay && (!this.mutations.predatorAdrenals || this.hp >= this.maxHp)) {
+    // Shield-body mutation regenerates its converted vitality slowly.
+    if (this.mutations.shieldBody && this.shield < this.maxShield) {
+      this.shieldRegenTimer += dt;
+      if (this.shieldRegenTimer >= 2.5) { this.shield = Math.min(this.maxShield, this.shield + 1); this.shieldRegenTimer = 0; }
+    } else if (this.modules.chassis?.shieldRegenDelay && (!this.mutations.predatorAdrenals || this.hp >= this.maxHp)) {
       this.shieldRegenTimer += dt;
       if (this.shieldRegenTimer >= this.modules.chassis.shieldRegenDelay) {
         if (this.shield < this.maxShield) {
@@ -2062,7 +2183,7 @@ class Player extends Entity {
   fireWeapon(weapon, room, damageMult) {
     if (!room) return;
     const bulletCount = weapon.bulletCount || 1;
-    const baseDmg = (weapon.damage || 14) * damageMult * (this.mutations.voidbound ? 0.78 : 1);
+    const baseDmg = (weapon.damage || 14) * damageMult * (this.mutations.voidbound ? 0.78 : 1) * (this.mutations.homingInstinct ? 0.72 : 1);
 
     for (let i = 0; i < bulletCount; i++) {
       let shotAngle = this.angle;
@@ -2085,7 +2206,8 @@ class Player extends Entity {
       proj.owner = this;
 
       if (weapon.pierce) proj.pierce = true;
-      if (weapon.homing) proj.homing = true;
+      if (weapon.homing || this.mutations.homingInstinct) proj.homing = true;
+      if (weapon.bulletType === 'laser') { proj.pierce = true; proj.piercesLeft = 99; proj.life = 0.8; proj.maxLife = 0.8; proj.laserTick = 0; }
       if (weapon.chainTargets) proj.chainTargets = weapon.chainTargets;
       if (this.mutations.causticBile) proj.leavesAcid = true;
 
@@ -2137,6 +2259,7 @@ class Player extends Entity {
       if (window.soundEngine) window.soundEngine.playPickup('scrap');
       if (game) game.addParticle(new FloatingText(this.x, this.y - 20, `+${p.amount} SUCATA`, '#f59e0b'));
     } else if (p.type === 'hp') {
+      if (this.mutations.shieldBody) { if (game) game.addParticle(new FloatingText(this.x, this.y - 20, 'MATRIZ ATIVA', '#00f0ff')); return; }
       const heal = this.mutations.vampiricTendrils ? Math.max(1, Math.floor(p.amount * 0.5)) : p.amount;
       this.hp = Math.min(this.maxHp, this.hp + heal);
       if (window.soundEngine) window.soundEngine.playPickup('scrap');

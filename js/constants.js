@@ -148,6 +148,20 @@ const CONSTANTS = {
       cost: 35
     },
     {
+      id: 'weapon_laser',
+      name: 'Emissor de Laser Contínuo',
+      slot: 'weapon',
+      rarity: 'epic',
+      iconKey: 'weapon_railgun',
+      description: 'Dispara um feixe laser que atravessa inimigos e causa dano contínuo.',
+      fireRate: 2.0,
+      damage: 8,
+      speed: 760,
+      pierce: true,
+      bulletType: 'laser',
+      cost: 42
+    },
+    {
       id: 'weapon_tesla',
       name: 'Emissor de Arco Voltaico',
       slot: 'weapon',

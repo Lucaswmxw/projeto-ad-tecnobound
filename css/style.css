@@ -1048,3 +1048,19 @@ html, body {
     font-size: 6px;
   }
 }
+
+/* Main-menu challenge toggle and next-run controls */
+.mode-toggle {
+  border-color: #ff9d00;
+  color: #ffd166;
+  margin: 8px auto;
+  width: min(100%, 360px);
+}
+.mode-hint {
+  max-width: 420px;
+  margin: 0 auto 8px;
+  color: #b6c2d2;
+  font: 7px/1.6 monospace;
+  text-align: center;
+  letter-spacing: .04em;
+}
